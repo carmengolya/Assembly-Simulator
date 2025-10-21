@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/risc_simulator.dir/src/alu.c.o CMakeFiles/risc_simulator.dir/src/cpu.c.o CMakeFiles/risc_simulator.dir/src/control_unit.c.o CMakeFiles/risc_simulator.dir/src/instructions.c.o CMakeFiles/risc_simulator.dir/src/memory.c.o CMakeFiles/risc_simulator.dir/main.c.o -o risc_simulator 
