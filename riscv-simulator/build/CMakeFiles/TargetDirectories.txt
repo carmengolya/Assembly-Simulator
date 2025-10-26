@@ -1,0 +1,3 @@
+/home/carmen/Assembly-Simulator/riscv-simulator/build/CMakeFiles/riscv_simulator.dir
+/home/carmen/Assembly-Simulator/riscv-simulator/build/CMakeFiles/edit_cache.dir
+/home/carmen/Assembly-Simulator/riscv-simulator/build/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,84 @@
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "decoder.h"
+
+typedef struct 
+{
+    const char *name;
+    int index;
+} RegAlias;
+
+static const RegAlias reg_aliases[] = {
+    {"zero", 0}, {"ra", 1}, {"sp", 2}, {"gp", 3}, {"tp", 4},
+    {"t0", 5}, {"t1", 6}, {"t2", 7}, {"s0", 8}, {"fp", 8},
+    {"s1", 9}, {"a0", 10}, {"a1", 11}, {"a2", 12}, {"a3", 13},
+    {"a4", 14}, {"a5", 15}, {"a6", 16}, {"a7", 17},
+    {"s2", 18}, {"s3", 19}, {"s4", 20}, {"s5", 21}, {"s6", 22},
+    {"s7", 23}, {"s8", 24}, {"s9", 25}, {"s10", 26}, {"s11", 27},
+    {"t3", 28}, {"t4", 29}, {"t5", 30}, {"t6", 31},
+    {NULL, -1}
+};
+
+static void trim_inplace(char *s)
+{
+    if (!s) 
+        return;
+
+    char *start = s;
+    while (*start && isspace((unsigned char)*start)) 
+        start++;
+
+    if (start != s) 
+        memmove(s, start, strlen(start) + 1);
+
+    int len = (int)strlen(s);
+    while (len > 0 && isspace((unsigned char)s[len-1])) 
+        s[--len] = '\0';
+}
+
+static void to_lower_inplace(char *s)
+{
+    for (char *p = s; *p; ++p) 
+        *p = (char)tolower((unsigned char)*p);
+}
+
+int reg_index(const char *name) 
+{
+    if(!name)
+        return -1;
+    
+    char tmp[64];
+    strncpy(tmp, name, sizeof(tmp) - 1);
+    tmp[sizeof(tmp) - 1] = '\0';
+    trim_inplace(tmp);
+    if(tmp[0] == '\0')
+        return -1;
+
+    // handle xn or Xn
+    if(tmp[0] == 'x' || tmp[0] == 'X')
+    { 
+        const char *num = tmp + 1;
+        if (*num == '\0') 
+            return -1;
+        
+        char *endp = NULL;
+        long v = strtol(num, &endp, 10);
+        if (*endp != '\0') 
+            return -1;
+        if (v < 0 || v > 31) 
+            return -1;
+        return (int)v;
+    }
+
+    // case-sensitive compare for aliases
+    to_lower_inplace(tmp);
+    for(int i = 0; reg_aliases[i].name; i++) 
+    {
+        if (strcmp(tmp, reg_aliases[i].name) == 0)
+            return reg_aliases[i].index;
+    }
+    return -1;
+}

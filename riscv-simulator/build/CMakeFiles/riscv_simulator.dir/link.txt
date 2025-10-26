@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/riscv_simulator.dir/src/alu.c.o CMakeFiles/riscv_simulator.dir/src/assembler.c.o CMakeFiles/riscv_simulator.dir/src/cpu.c.o CMakeFiles/riscv_simulator.dir/src/decoder.c.o CMakeFiles/riscv_simulator.dir/src/encoder.c.o CMakeFiles/riscv_simulator.dir/src/memory.c.o CMakeFiles/riscv_simulator.dir/main.c.o -o riscv_simulator 
