@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "assembler.h"
 #include "encoder.h"
+#include "memory.h"
 
 int main(void) 
 {
@@ -14,6 +16,14 @@ int main(void)
         return 1;
     }
     print_program(&program);
+
+    Memory m = memory_init(400);
+    uint32_t *enc = (uint32_t *)malloc(sizeof(uint32_t) * program.instruction_count);
+    if(!enc)
+    {
+        perror("[ERROR] memory allocation for encoded array failed.");
+        return 1;
+    }
 
     printf("\n=== Encoding instructions ===\n");
     for (int i = 0; i < program.instruction_count; ++i)
@@ -33,8 +43,12 @@ int main(void)
             continue;
         }
 
-        uint32_t enc = encode_instruction(instr);
-        printf(" -> encoded: 0x%08X\n", enc);
+        enc[i] = encode_instruction(instr);
+        printf(" -> encoded: 0x%08X\n", enc[i]);
     }
+
+    load_program_into_memory(&m, enc, program.instruction_count, 0);
+    memory_dump_words(&m, 0, program.instruction_count * 4);
+    memory_free(&m);
     return 0;
 }
