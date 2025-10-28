@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "alu.h"
 #include "decoder.h"
 
 typedef struct 
@@ -81,4 +82,9 @@ int reg_index(const char *name)
             return reg_aliases[i].index;
     }
     return -1;
+}
+
+ALUOp decode_opcode(char *opcode)
+{
+
 }

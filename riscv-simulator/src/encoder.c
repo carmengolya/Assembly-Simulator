@@ -17,8 +17,6 @@ static uint32_t build_rtype(uint32_t funct7, uint32_t rs2, uint32_t rs1, uint32_
            ( opcode & 0x7F );
 }
 
-
-
 uint32_t encode_instruction(Instruction *instr)
 {
     if (!instr)
@@ -48,26 +46,27 @@ uint32_t encode_instruction(Instruction *instr)
             return 0;
         }
 
-        enc.rtype.opcode = 0x33;
-        enc.rtype.rd = (uint32_t)rd;
-        enc.rtype.rs1 = (uint32_t)rs1;
-        enc.rtype.rs2 = (uint32_t)rs2;
-        enc.rtype.funct3 = 0x00;
+        uint8_t funct7, funct3, opcode;
+        const char *op_name;
+
+        funct3 = 0x00; 
+        opcode = 0x33;
+
         if(strcmp(instr->opcode, "add") == 0)
         {
-            enc.rtype.funct7 = 0X00;
+            funct7 = 0X00;
+            op_name = "ADD";
         }
         else
         {
-            enc.rtype.funct7 = 0x20;
+            funct7 = 0x20;
+            op_name = "SUB";
         }
 
-        uint32_t expected = build_rtype(enc.rtype.funct7, enc.rtype.rs2, enc.rtype.rs1, enc.rtype.funct3, enc.rtype.rd, enc.rtype.opcode);
-        if(expected != enc.value)
-        {
-            enc.value = expected;
-        }
-        return enc.value;
+        uint32_t encoded = build_rtype(funct7, rs2, rs1, funct3, rd, opcode);
+        printf("[ENCODE] %s x%d, x%d, x%d -> 0x%08X\n",
+               op_name, rd, rs1, rs2, encoded);
+        return encoded;
     }
 
     printf("[WARN] unknown opcode: %s\n", instr->opcode);

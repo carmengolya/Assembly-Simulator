@@ -11,7 +11,7 @@ Memory memory_init(size_t size)
     m.data = (uint8_t *)malloc(sizeof(uint8_t) * size);
     if(m.data == NULL)
     {
-        perror("[ERROR] memory allocation failed.");
+        printf("[ERROR] memory allocation failed.\n");
         m.size = 0;
         return m;
     }
@@ -40,7 +40,7 @@ uint32_t memory_read32(Memory *m, uint32_t addr)
 {
     if(!in_bounds(m , addr, 4))
     {
-        perror("[ERROR] trying to read from out-of-bounds memory.");
+        printf("[ERROR] trying to read from out-of-bounds memory.\n");
         return 0;
     }
     uint32_t v = m->data[addr] | (m->data[addr + 1] << 8) | (m->data[addr + 2] << 16) | (m->data[addr + 3] << 24);
@@ -51,7 +51,7 @@ void memory_write32(Memory *m, uint32_t addr, uint32_t value)
 {
     if(!in_bounds(m , addr, 4))
     {
-        perror("[ERROR] trying to write to out-of-bounds memory.");
+        printf("[ERROR] trying to write to out-of-bounds memory.\n");
         return;
     }
 
@@ -66,7 +66,7 @@ void load_program_into_memory(Memory *m, const uint32_t *program, size_t len_wor
     size_t bytes = len_words * sizeof(uint32_t);
     if(base_addr + bytes > m->size)
     {
-        perror("[ERROR] trying to load more bytes than memory can support.");
+        printf("[ERROR] trying to load more bytes than memory can support.\n");
         return;
     }
 
@@ -80,14 +80,14 @@ void memory_dump_words(Memory *m, uint32_t addr, size_t words)
 {
     if(!m)
     {
-        perror("[ERROR] memory is null: cannot read words from it.");
+        printf("[ERROR] memory is null: cannot read words from it.\n");
         return;
     }
 
     size_t start = (size_t)addr;
     if (start >= m->size) 
     {
-        perror("[ERROR] memory_dump_words: start address out of bounds");
+        printf("[ERROR] memory_dump_words: start address out of bounds\n");
         return;
     }
 

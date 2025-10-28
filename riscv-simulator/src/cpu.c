@@ -1,30 +1,336 @@
+#include <stdio.h>
+
 #include "cpu.h"
+#include "instruction.h"
+#include "alu.h"
+
+void cpu_init(CPU *cpu)
+{
+    for(int i = 1; i < REG_NUMBER; i++)
+    {
+        cpu_set_reg(cpu, i, 0);
+    }
+    cpu->pc = 0;
+
+    cpu->memory = NULL;              
+    cpu->program = NULL;       
+    
+    cpu->instructions_executed = 0; 
+    cpu->halted = 0;                     
+    cpu->error = 0; 
+}
+
+void cpu_init_with_program(CPU *cpu, Memory *memory, AssemblyProgram *program)
+{
+    if (!cpu || !memory || !program)
+    {
+        printf("[ERROR] null argument for cpu, memory or program.\n");
+        return;
+    }
+
+    cpu_init(cpu);
+    cpu->memory = memory;
+    cpu->program = program;
+    cpu->pc = 0;
+}
 
 void cpu_set_reg(CPU *cpu, int index, int32_t value)
 {
     if(index == 0)
     {
-        perror("[ERROR] tried modifying zero register.");
-        return; // if we are trying to access and modify the zero register, it will remain unchanged
+        printf("[ERROR] tried modifying zero register.\n");
+        return; 
     }
 
     cpu->regs[index] = value;
 }
 
-void cpu_init(CPU *cpu)
+int32_t cpu_get_reg(CPU *cpu, int index)
 {
-    for(int i = 0; i < REG_NUMBER; i++)
+    if(!cpu)
     {
-        cpu_set_reg(cpu, i, 0);
+        printf("[ERROR] cpu is null, cannot get any register value.\n");
+        return 0;
     }
-    cpu->pc = 0;
+
+    if(index < 0 || index >= REG_NUMBER)
+    {
+        printf("[ERROR] invalid register index.\n");
+        return 0;
+    }
+
+    return cpu->regs[index];
 }
 
-void print_registers(CPU *cpu)
+
+void cpu_print_registers(CPU *cpu)
 {
-    printf("pc[] 0x%08X\n", cpu->pc);
+    if (!cpu)
+    {
+        printf("[ERROR] cpu_print_registers: CPU is NULL\n");
+        return;
+    }
+
+    printf("=== REGISTERS ===\n");
+    printf("PC: 0x%08X\n", cpu->pc);
     for(int i = 0; i < REG_NUMBER; i++)
     {
-        printf("regs[x%02d] 0x%08X\n", i, cpu->regs[i]);
+        printf("x%02d: 0x%08X (%11d)", i, cpu->regs[i], cpu->regs[i]);
+
+        if ((i + 1) % 2 == 0)
+            printf("\n");
+        else
+            printf(" | ");
     }
+}
+
+void cpu_print_state(CPU *cpu)
+{
+    if (!cpu)
+    {
+        printf("[ERROR] cpu_print_state: CPU is NULL\n");
+        return;
+    }
+
+    printf("\n=== CPU STATE ===\n");
+    printf("PC: 0x%08X\n", cpu->pc);
+    printf("Instructions executed: %u\n", cpu->instructions_executed);
+    printf("Halted: %s\n", cpu->halted ? "YES" : "NO");
+    printf("Error: %s\n", cpu->error ? "YES" : "NO");
+    printf("\n");
+
+    cpu_print_registers(cpu);
+    printf("\n");
+}
+
+EncodedInstruction cpu_fetch(CPU *cpu)
+{
+    EncodedInstruction enc = {0};
+    if(!cpu || !cpu->memory)
+    {
+        printf("[ERROR] cpu or cpu memory is null.\n");
+        return enc;
+    }
+
+    enc.value = memory_read32(cpu->memory, cpu->pc);
+    return enc;
+}
+
+static int cpu_decode_rtype(CPU *cpu, EncodedInstruction enc)
+{
+    if (!cpu)
+    {
+        printf("[ERROR] cpu_decode_rtype: CPU is NULL\n");
+        return -1;
+    }
+
+    uint8_t funct7 = rtype_get_funct7(enc.value);
+    uint8_t rs2 = rtype_get_rs2(enc.value);
+    uint8_t rs1 = rtype_get_rs1(enc.value);
+    uint8_t funct3 = rtype_get_funct3(enc.value);
+    uint8_t rd = rtype_get_rd(enc.value);
+
+    printf("[DECODE] R-Type: funct7=0x%02X, rs2=%d, rs1=%d, funct3=0x%X, rd=%d\n",
+           funct7, rs2, rs1, funct3, rd);
+
+    return 0;
+}
+
+int cpu_decode(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu is null.\n");
+        return -1;
+    }
+
+    uint8_t opcode = enc.value & 0x7F;
+    printf("[DECODE DISPATCH] Opcode=0x%02X\n", opcode);
+    switch(opcode)
+    {
+        case 0x33:
+            return cpu_decode_rtype(cpu, enc);
+
+        default:
+            {
+                printf("[ERROR] cpu_decode: unknown opcode 0x%02X at PC 0x%08X\n",
+                   opcode, cpu->pc);
+                cpu->error = 1;
+                return -1;
+            }
+    }
+}
+
+static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu is null.\n");
+        return -1;
+    }
+
+    uint8_t funct7 = rtype_get_funct7(enc.value);
+    uint8_t rs2 = rtype_get_rs2(enc.value);
+    uint8_t rs1 = rtype_get_rs1(enc.value);
+    uint8_t funct3 = rtype_get_funct3(enc.value);
+    uint8_t rd = rtype_get_rd(enc.value);
+
+    int32_t val_rs1 = cpu_get_reg(cpu, rs1);
+    int32_t val_rs2 = cpu_get_reg(cpu, rs2);
+
+    ALUOp operation;
+    const char *op_name;
+
+    if(funct3 == 0x00)
+    {
+        if(funct7 == 0x00)
+        {
+            operation = ALU_ADD;
+            op_name = "ADD";
+        }
+        else if(funct7 == 0x20)
+        {
+            operation = ALU_SUB;
+            op_name = "SUB";
+        }
+        else
+        {
+            printf("[ERROR] unsupported rtype function funct3 0x%X at PC 0x%08X\n",
+               funct3, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
+    }
+
+    int32_t result = alu_execute(operation, val_rs1, val_rs2);
+
+    cpu_writeback(cpu, rd, result);
+
+    printf("[EXEC] %s x%d, x%d, x%d -> x%d = 0x%08X (rs1=0x%08X, rs2=0x%08X)\n",
+           op_name, rd, rs1, rs2, rd, result, val_rs1, val_rs2);
+
+    return 0;
+}
+
+int cpu_execute(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu is null.\n");
+        return -1;
+    }
+
+    uint8_t opcode = enc.value & 0x7F;
+    switch(opcode)
+    {
+        case 0x33:
+            return cpu_execute_rtype(cpu, enc);
+
+        default:
+        {
+            printf("[ERROR] cpu_execute: unknown opcode 0x%02X at PC 0x%08X\n",
+                   opcode, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
+    }
+}
+
+void cpu_writeback(CPU *cpu, int rd, int32_t value)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu is null.\n");
+        return;
+    }
+
+    cpu_set_reg(cpu, rd, value);
+}
+
+int cpu_step(CPU *cpu)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu is null.\n");
+        return -1;
+    }
+
+    if(cpu->halted)
+    {
+        printf("[INFO] cpu is halted.\n");
+        return 0;
+    }
+
+    if (cpu->pc >= cpu->program->instruction_count * 4)
+    {
+        printf("[INFO] cpu_step: PC (0x%08X) reached end of program (program size: %d bytes)\n",
+               cpu->pc, cpu->program->instruction_count * 4);
+        cpu->halted = 1;
+        return 0;
+    }
+
+    if(cpu->pc >= cpu->memory->size)
+    {
+        printf("[INFO] cpu_step: PC (0x%08X) reached end of program\n", cpu->pc);
+        cpu->halted = 1;
+        return 0;
+    }
+
+    // 1. fetch
+    EncodedInstruction enc = cpu_fetch(cpu);
+
+    printf("\n[STEP %u] PC=0x%08X, Instruction=0x%08X\n",
+           cpu->instructions_executed, cpu->pc, enc.value);
+
+    // 1.1 increment
+    cpu->pc += 4; 
+
+    // 2. decode
+    if (cpu_decode(cpu, enc) < 0)
+    {
+        printf("[ERROR] cpu_step: decode failed\n");
+        return -1;
+    }
+
+    // 3. execute
+    if (cpu_execute(cpu, enc) < 0)
+    {
+        printf("[ERROR] cpu_step: execution failed\n");
+        return -1;
+    }
+
+    cpu->instructions_executed++;
+
+    return 0;
+}
+
+int cpu_run(CPU *cpu)
+{
+    if (!cpu)
+    {
+        printf("[ERROR] cpu_run: CPU is NULL\n");
+        return -1;
+    }
+
+    printf("\n=== Starting CPU Execution ===\n");
+
+    while (!cpu->halted && cpu->instructions_executed < 1000)
+    {
+        if (cpu_step(cpu) < 0)
+        {
+            printf("[ERROR] cpu_run: execution failed at step %u\n",
+                   cpu->instructions_executed);
+            return -1;
+        }
+    }
+
+    if (cpu->instructions_executed >= 1000)
+    {
+        printf("[WARN] cpu_run: execution limit (1000 instructions) reached\n");
+    }
+
+    printf("\n=== CPU Execution Finished ===\n");
+    printf("Total instructions executed: %u\n", cpu->instructions_executed);
+
+    return 0;
 }

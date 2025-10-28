@@ -9,4 +9,6 @@ typedef enum
     ALU_SUB
 } ALUOp;
 
+int32_t alu_execute(ALUOp op, int32_t operand1, int32_t operand2);
+
 #endif // ALU_H

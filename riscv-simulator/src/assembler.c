@@ -56,7 +56,7 @@ int read_asm_file(char *filename, AssemblyProgram *program)
     FILE *f = NULL;
     if((f = fopen(filename, "r")) == NULL)
     {
-        perror("[ERROR] opening assembly test file.");
+        printf("[ERROR] opening assembly test file.\n");
         return -1;
     }
 
@@ -109,7 +109,7 @@ int read_asm_file(char *filename, AssemblyProgram *program)
 
     if(fclose(f) != 0)
     {
-        perror("[ERROR] closing assembly test file.");
+        printf("[ERROR] closing assembly test file.\n");
         return -1;
     }
 
