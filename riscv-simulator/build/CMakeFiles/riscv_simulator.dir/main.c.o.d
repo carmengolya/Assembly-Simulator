@@ -54,6 +54,9 @@ CMakeFiles/riscv_simulator.dir/main.c.o: \
  /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h /usr/include/alloca.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
  /home/carmen/Assembly-Simulator/riscv-simulator/include/assembler.h \
- /home/carmen/Assembly-Simulator/riscv-simulator/include/encoder.h \
+ /home/carmen/Assembly-Simulator/riscv-simulator/include/cpu.h \
  /home/carmen/Assembly-Simulator/riscv-simulator/include/assembler.h \
+ /home/carmen/Assembly-Simulator/riscv-simulator/include/instruction.h \
+ /home/carmen/Assembly-Simulator/riscv-simulator/include/memory.h \
+ /home/carmen/Assembly-Simulator/riscv-simulator/include/encoder.h \
  /home/carmen/Assembly-Simulator/riscv-simulator/include/memory.h
