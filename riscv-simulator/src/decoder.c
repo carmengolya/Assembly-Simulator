@@ -84,7 +84,53 @@ int reg_index(const char *name)
     return -1;
 }
 
-ALUOp decode_opcode(char *opcode)
+int32_t parse_immediate(const char *str)
 {
+    if (!str || strlen(str) == 0)
+        return 0;
 
+    const char *start = str;
+
+    if(str[0] == '#')
+        start = str + 1;
+
+    return (int32_t)strtol(start, NULL, 0);
+}
+
+int parse_memory_operand(const char *operand, int32_t *out_offset, int *out_reg)
+{
+    if (!operand || !out_offset || !out_reg)
+        return -1;
+
+    char *paren = strchr(operand, '(');
+    if (!paren)
+    {
+        printf("[ERROR] Invalid memory operand format (expected 'offset(register)'): %s\n", operand);
+        return -1;
+    }
+
+    char offset_str[32];
+    strncpy(offset_str, operand, paren - operand);
+    offset_str[paren - operand] = '\0';
+    *out_offset = parse_immediate(offset_str);
+
+    char *close_paren = strchr(paren, ')');
+    if (!close_paren)
+    {
+        printf("[ERROR] Missing closing parenthesis in memory operand: %s\n", operand);
+        return -1;
+    }
+
+    char reg_str[32];
+    strncpy(reg_str, paren + 1, close_paren - paren - 1);
+    reg_str[close_paren - paren - 1] = '\0';
+
+    *out_reg = reg_index(reg_str);
+    if (*out_reg < 0)
+    {
+        printf("[ERROR] Invalid register in memory operand: %s\n", reg_str);
+        return -1;
+    }
+
+    return 0;
 }

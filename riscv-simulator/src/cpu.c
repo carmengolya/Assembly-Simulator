@@ -136,6 +136,38 @@ static int cpu_decode_rtype(CPU *cpu, EncodedInstruction enc)
     return 0;
 }
 
+static int cpu_decode_itype(CPU *cpu, EncodedInstruction enc)
+{
+    if (!cpu)
+    {
+        printf("[ERROR] cpu_decode_itype: CPU is NULL\n");
+        return -1;
+    }
+
+    uint8_t funct3 = itype_get_funct3(enc.value);
+    uint8_t rs1 = itype_get_rs1(enc.value);
+    uint8_t rd = itype_get_rd(enc.value);
+    int32_t imm = itype_get_immediate(enc.value);
+
+    printf("[DECODE] I-Type: funct3=0x%X, rs1=%d, rd=%d, imm=%d\n",
+           funct3, rs1, rd, imm);
+
+    return 0;
+}
+
+static int cpu_decode_stype(CPU *cpu, EncodedInstruction enc)
+{
+    if (!cpu)
+    {
+        printf("[ERROR] cpu_decode_stype: CPU is NULL\n");
+        return -1;
+    }
+
+    printf("[DECODE] S-Type (placeholder)\n");
+
+    return 0;
+}
+
 int cpu_decode(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
@@ -151,6 +183,12 @@ int cpu_decode(CPU *cpu, EncodedInstruction enc)
         case 0x33:
             return cpu_decode_rtype(cpu, enc);
 
+        case 0x03:
+            return cpu_decode_itype(cpu, enc);
+
+        case 0x23:
+            return cpu_decode_stype(cpu, enc);
+
         default:
             {
                 printf("[ERROR] cpu_decode: unknown opcode 0x%02X at PC 0x%08X\n",
@@ -165,7 +203,7 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
     {
-        printf("[ERROR] cpu is null.\n");
+        printf("[ERROR] cpu_execute_rtype: CPU is null.\n");
         return -1;
     }
 
@@ -179,7 +217,7 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
     int32_t val_rs2 = cpu_get_reg(cpu, rs2);
 
     ALUOp operation;
-    const char *op_name;
+    const char *op_name = "UNKNOWN";
 
     if(funct3 == 0x00)
     {
@@ -212,6 +250,84 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
     return 0;
 }
 
+static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu_execute_itype: CPU is null.\n");
+        return -1;
+    }
+
+    uint8_t funct3 = itype_get_funct3(enc.value);
+    int32_t imm = itype_get_immediate(enc.value);
+    uint8_t rs1 = itype_get_rs1(enc.value);
+    uint8_t rd = itype_get_rd(enc.value);
+
+    int32_t addr_base = cpu_get_reg(cpu, rs1);
+    uint32_t data_offset = cpu->program->instruction_count * 4;
+    uint32_t addr = data_offset + addr_base + imm;
+
+    const char *op_name = "UNKNOWN";
+    int32_t value = 0;
+
+    if(funct3 == 0x2)  
+    {
+        op_name = "LW";
+        value = memory_read32(cpu->memory, addr);
+        printf("[EXEC] %s x%d, %d(x%d) -> Load from 0x%08X = 0x%08X\n",
+               op_name, rd, imm, rs1, addr, value);
+    }
+    else
+    {
+        printf("[ERROR] cpu_execute_itype: unsupported funct3 0x%X at PC 0x%08X\n",
+               funct3, cpu->pc);
+        cpu->error = 1;
+        return -1;
+    }
+
+    cpu_writeback(cpu, rd, value);
+    return 0;
+}
+
+static int cpu_execute_stype(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu_execute_stype: CPU is null.\n");
+        return -1;
+    }
+
+    uint8_t funct3 = stype_get_funct3(enc.value);
+    uint8_t rs1 = stype_get_rs1(enc.value);
+    uint8_t rs2 = stype_get_rs2(enc.value);
+    int32_t imm = stype_get_immediate(enc.value);
+
+    int32_t addr_base = cpu_get_reg(cpu, rs1);
+    int32_t value = cpu_get_reg(cpu, rs2);
+
+    uint32_t data_offset = cpu->program->instruction_count * 4;
+    uint32_t addr = data_offset + addr_base + imm;
+
+    const char *op_name = "UNKNOWN";
+
+    if(funct3 == 0x2)  
+    {
+        op_name = "SW";
+        printf("[EXEC] %s x%d, %d(x%d) -> Store 0x%08X to 0x%08X\n",
+               op_name, rs2, imm, rs1, value, addr);
+        memory_write32(cpu->memory, addr, value);
+    }
+    else
+    {
+        printf("[ERROR] cpu_execute_stype: unsupported funct3 0x%X at PC 0x%08X\n",
+               funct3, cpu->pc);
+        cpu->error = 1;
+        return -1;
+    }
+
+    return 0;
+}
+
 int cpu_execute(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
@@ -223,6 +339,12 @@ int cpu_execute(CPU *cpu, EncodedInstruction enc)
     uint8_t opcode = enc.value & 0x7F;
     switch(opcode)
     {
+        case 0x03: 
+            return cpu_execute_itype(cpu, enc);
+
+        case 0x23:  
+            return cpu_execute_stype(cpu, enc);
+
         case 0x33:
             return cpu_execute_rtype(cpu, enc);
 
@@ -261,10 +383,12 @@ int cpu_step(CPU *cpu)
         return 0;
     }
 
-    if (cpu->pc >= cpu->program->instruction_count * 4)
+    uint32_t program_end = cpu->program->instruction_count * 4;
+
+    if (cpu->pc >= program_end)
     {
         printf("[INFO] cpu_step: PC (0x%08X) reached end of program (program size: %d bytes)\n",
-               cpu->pc, cpu->program->instruction_count * 4);
+               cpu->pc, program_end);
         cpu->halted = 1;
         return 0;
     }

@@ -17,6 +17,28 @@ static uint32_t build_rtype(uint32_t funct7, uint32_t rs2, uint32_t rs1, uint32_
            ( opcode & 0x7F );
 }
 
+static uint32_t build_itype(uint32_t imm, uint32_t rs1, uint32_t funct3, uint32_t rd, uint32_t opcode)
+{
+    return (((imm & 0xFFF) << 20) |
+            ((rs1     & 0x1F) << 15) |
+            ((funct3  & 0x07) << 12) |
+            ((rd      & 0x1F) << 7)  |
+            ( opcode  & 0x7F ));
+}
+
+static uint32_t build_stype(uint32_t imm, uint32_t rs2, uint32_t rs1, uint32_t funct3, uint32_t opcode)
+{
+    uint32_t imm_hi = (imm >> 5) & 0x7F;     // [11:5]
+    uint32_t imm_lo = imm & 0x1F;             // [4:0]
+
+    return ((imm_hi & 0x7F) << 25) |
+           ((rs2     & 0x1F) << 20) |
+           ((rs1     & 0x1F) << 15) |
+           ((funct3  & 0x07) << 12) |
+           ((imm_lo  & 0x1F) << 7)  |
+           ( opcode  & 0x7F );
+}
+
 uint32_t encode_instruction(Instruction *instr)
 {
     if (!instr)
@@ -42,7 +64,11 @@ uint32_t encode_instruction(Instruction *instr)
 
         if (rd < 0 || rs1 < 0 || rs2 < 0)
         {
-            printf("[ERROR] not enough registers.\n");
+            printf("[ERROR] encode_instruction: invalid registers for '%s' (line %d)\n",
+               instr->opcode, instr->line_number);
+            printf("  rd=%d, rs1=%d, rs2=%d\n", rd, rs1, rs2);
+            printf("  operands: '%s', '%s', '%s'\n", 
+                instr->operands[0], instr->operands[1], instr->operands[2]);
             return 0;
         }
 
@@ -66,6 +92,72 @@ uint32_t encode_instruction(Instruction *instr)
         uint32_t encoded = build_rtype(funct7, rs2, rs1, funct3, rd, opcode);
         printf("[ENCODE] %s x%d, x%d, x%d -> 0x%08X\n",
                op_name, rd, rs1, rs2, encoded);
+        return encoded;
+    }
+    else if(strcmp(instr->opcode, "lw") == 0)
+    {
+        if (instr->operand_count < 2)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'lw' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        if (rd < 0)
+        {
+            printf("[ERROR] Invalid destination register for lw: %s (line %d)\n",
+                   instr->operands[0], instr->line_number);
+            return 0;
+        }
+
+        int32_t offset;
+        int rs1;
+        if (parse_memory_operand(instr->operands[1], &offset, &rs1) < 0)
+        {
+            printf("[ERROR] Failed to parse memory operand for lw (line %d)\n", instr->line_number);
+            return 0;
+        }
+
+        uint8_t funct3 = 0x2;  
+        uint8_t opcode = 0x03; 
+        
+        uint32_t encoded = build_itype(offset & 0xFFF, rs1, funct3, rd, opcode);
+        printf("[ENCODE] LW x%d, %d(x%d) -> 0x%08X\n",
+               rd, offset, rs1, encoded);
+        return encoded;
+    }
+    else if(strcmp(instr->opcode, "sw") == 0)
+    {
+        if (instr->operand_count < 2)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'sw' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rs2 = reg_index(instr->operands[0]);
+        if (rs2 < 0)
+        {
+            printf("[ERROR] Invalid source register for sw: %s (line %d)\n",
+                   instr->operands[0], instr->line_number);
+            return 0;
+        }
+
+        int32_t offset;
+        int rs1;
+        if (parse_memory_operand(instr->operands[1], &offset, &rs1) < 0)
+        {
+            printf("[ERROR] Failed to parse memory operand for sw (line %d)\n", instr->line_number);
+            return 0;
+        }
+
+        uint8_t funct3 = 0x2;  
+        uint8_t opcode = 0x23; 
+
+        uint32_t encoded = build_stype(offset & 0xFFF, rs2, rs1, funct3, opcode);
+        printf("[ENCODE] SW x%d, %d(x%d) -> 0x%08X\n",
+               rs2, offset, rs1, encoded);
         return encoded;
     }
 

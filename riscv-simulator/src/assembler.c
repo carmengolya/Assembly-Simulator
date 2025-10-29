@@ -5,12 +5,37 @@
 
 #include "assembler.h"
 
+static void eliminate_block_comments(char *buffer)
+{
+    if(!buffer)
+        return;
+
+    char *blockStart = strstr(buffer, "/*");
+    while(blockStart)
+    {
+        char *blockEnd = strstr(blockStart, "*/");
+        if(blockEnd)
+        {
+            memmove(blockStart, blockEnd + 2, strlen(blockEnd + 2) + 1);
+            blockStart = strstr(blockStart, "/*");
+        }
+        else
+        {
+            *blockStart = '\0';
+            break;
+        }
+    }
+}
+
 static void eliminate_comment(char *line)
 {
-    char *commPtr = strstr(line, "//");
-    if(commPtr)
+    if(!line)
+        return;
+
+    char *lineStart = strstr(line, "//");
+    if(lineStart)
     {
-        *commPtr = '\0';
+        *lineStart = '\0';
     }
 }
 
@@ -60,19 +85,55 @@ int read_asm_file(char *filename, AssemblyProgram *program)
         return -1;
     }
 
+    fseek(f, 0, SEEK_END);
+    long fileSize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char *buffer = (char *)malloc(fileSize + 1);
+    if(!buffer)
+    {
+        printf("[ERROR] memory allocation for file buffer.\n");
+        fclose(f);
+        return -1;
+    }
+
+    size_t readSize = fread(buffer, 1, fileSize, f);
+    buffer[readSize] = '\0';
+
+    if(fclose(f) != 0)
+    {
+        printf("[ERROR] closing assembly test file.\n");
+        return -1;
+    }
+
+    eliminate_block_comments(buffer);
+
     program->instruction_count = 0;
 
+    char *line_ptr = buffer;
     char line[MAX_LINE_SIZE];
     int line_number = 0;
 
-    while(fgets(line, sizeof(line), f))
+    while(line_ptr && *line_ptr != '\0')
     {
+        // step 0: extracting one line
+        char *newline = strchr(line_ptr, '\n');
+        size_t line_len = newline ? (newline - line_ptr) : strlen(line_ptr);
+         if(line_len >= MAX_LINE_SIZE)
+            line_len = MAX_LINE_SIZE - 1;
+
+        strncpy(line, line_ptr, line_len);
+        line[line_len] = '\0';
+
         // step 1: trimming the line
         line_number++;
         eliminate_comment(line);
         eliminate_whitespaces(line);
         if(strlen(line) == 0)
+        {
+            line_ptr = newline ? newline + 1 : NULL;   
             continue;
+        }
 
         // step 2: if it isn't an empty line, we create an instruction
         Instruction instr = {0};
@@ -92,27 +153,33 @@ int read_asm_file(char *filename, AssemblyProgram *program)
         // step 3.2: [opcode]
         char *token = strtok(line, " \t");
         if(!token)
+        {
+            line_ptr = newline ? newline + 1 : NULL;
             continue;
+        }
         
         strncpy(instr.opcode, token, MAX_OPCODE_SIZE - 1);
+        for(int i = 0; instr.opcode[i]; i++)
+            instr.opcode[i] = tolower(instr.opcode[i]);
 
         // step 3.3: [... [operands]]
         char *rest = strtok(NULL, "");
         eliminate_whitespaces(rest);
         if(rest)
         {
-            instr.operand_count = parse_operands(rest, instr.operands);
+            eliminate_whitespaces(rest);
+            if(strlen(rest) > 0)
+            {
+                instr.operand_count = parse_operands(rest, instr.operands);
+            }
         }
 
         program->instructions[program->instruction_count++] = instr;
+
+        line_ptr = newline ? newline + 1 : NULL;
     }
 
-    if(fclose(f) != 0)
-    {
-        printf("[ERROR] closing assembly test file.\n");
-        return -1;
-    }
-
+    free(buffer);
     return 0;
 }
 

@@ -52,12 +52,6 @@ int main(void)
             if (j + 1 < instr->operand_count) printf(", ");
         }
 
-        if (instr->operand_count < 3)
-        {
-            printf(" -> [ERROR] not enough operands (need rd, rs1, rs2)\n");
-            continue;
-        }
-
         enc[i] = encode_instruction(instr);
         printf(" -> encoded: 0x%08X\n", enc[i]);
         encoded_count++;
@@ -69,26 +63,23 @@ int main(void)
     load_program_into_memory(&m, enc, program.instruction_count, 0);
     printf("[OK] Program loaded at address 0x00000000\n");
 
+    // ===== STEP 4B: LOAD DATA INTO MEMORY (AFTER INSTRUCTIONS) =====
+    printf("\n[STEP 4B] Loading initial data into memory...\n");
+    uint32_t data_offset = program.instruction_count * 4;  
+    memory_write32(&m, data_offset,      10);   
+    memory_write32(&m, data_offset + 4,  5);    
+    memory_write32(&m, data_offset + 8,  20);   
+    memory_write32(&m, data_offset + 12, 8);    
+    printf("[OK] Data loaded at address 0x%08X\n", data_offset);
+
     printf("\n[DEBUG] Memory dump after loading:\n");
-    memory_dump_words(&m, 0, program.instruction_count * 4);
+    memory_dump_words(&m, 0, data_offset + 16);
 
     // ===== STEP 5: INITIALIZE CPU =====
     printf("\n[STEP 5] Initializing CPU...\n");
     CPU cpu;
     cpu_init_with_program(&cpu, &m, &program);
     printf("[OK] CPU initialized\n");
-
-    // ===== STEP 5B: SET INITIAL REGISTER VALUES FOR TESTING =====
-    printf("\n[STEP 5B] Setting initial register values for testing...\n");
-    cpu_set_reg(&cpu, 2, 10);   // x2 (sp) = 10
-    cpu_set_reg(&cpu, 4, 5);    // x4 (tp) = 5
-    cpu_set_reg(&cpu, 6, 20);   // x6 (t1) = 20
-    cpu_set_reg(&cpu, 7, 8);    // x7 (t2) = 8
-    printf("[OK] Initial register values set:\n");
-    printf("  x2 = 10\n");
-    printf("  x4 = 5\n");
-    printf("  x6 = 20\n");
-    printf("  x7 = 8\n");
 
     printf("\n[DEBUG] Initial CPU state:\n");
     cpu_print_state(&cpu);
