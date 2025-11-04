@@ -9,6 +9,8 @@
     
 #define MAX_LINE_SIZE 1024
 
+#include <stdint.h>
+
 typedef struct 
 {
     char label[MAX_LABEL_SIZE];
@@ -18,10 +20,19 @@ typedef struct
     int line_number;
 } Instruction;
 
+typedef struct
+{
+    uint32_t value;
+    uint32_t address;
+} DataEntry;
+
 typedef struct 
 {
     Instruction instructions[MAX_INSTRUCTIONS];
     int instruction_count;
+
+    DataEntry *data;
+    int data_count;
 } AssemblyProgram;
 
 int read_asm_file(char *filename, AssemblyProgram *program);

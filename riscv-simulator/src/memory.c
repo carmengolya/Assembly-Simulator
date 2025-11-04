@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "assembler.h"
 #include "memory.h"
 
 Memory memory_init(size_t size)
@@ -73,6 +74,28 @@ void load_program_into_memory(Memory *m, const uint32_t *program, size_t len_wor
     for(size_t i = 0; i < len_words; i++)
     {
         memory_write32(m, base_addr + i * 4, program[i]);
+    }
+}
+
+void load_data_into_memory(Memory *m, const AssemblyProgram *program, uint32_t data_offset)
+{
+    if (program == NULL || program->data_count == 0) 
+    {
+        return; 
+    }
+
+    for(int i = 0; i < program->data_count; i++)
+    {
+        uint32_t addr = data_offset + program->data[i].address;
+        uint32_t value = program->data[i].value;
+
+        if(addr + 4 > m->size) 
+        {
+            printf("[ERROR] Not enough memory to load data entry at address 0x%08X.\n", addr);
+            continue; 
+        }
+
+        memory_write32(m, addr, value);
     }
 }
 

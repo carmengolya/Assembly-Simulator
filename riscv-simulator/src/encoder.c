@@ -39,6 +39,11 @@ static uint32_t build_stype(uint32_t imm, uint32_t rs2, uint32_t rs1, uint32_t f
            ( opcode  & 0x7F );
 }
 
+static int fits_imm12(int32_t imm) 
+{
+    return (imm >= -2048 && imm <= 2047);
+}
+
 uint32_t encode_instruction(Instruction *instr)
 {
     if (!instr)
@@ -51,7 +56,7 @@ uint32_t encode_instruction(Instruction *instr)
 
     if(strcmp(instr->opcode, "add") == 0 || strcmp(instr->opcode, "sub") == 0)
     {
-        if (instr->operand_count < 3)
+        if(instr->operand_count < 3)
         {
             printf("[ERROR] encode_instruction: not enough operands for '%s' (line %d)\n",
                    instr->opcode, instr->line_number);
@@ -62,7 +67,7 @@ uint32_t encode_instruction(Instruction *instr)
         int rs1 = reg_index(instr->operands[1]);
         int rs2 = reg_index(instr->operands[2]);
 
-        if (rd < 0 || rs1 < 0 || rs2 < 0)
+        if(rd < 0 || rs1 < 0 || rs2 < 0)
         {
             printf("[ERROR] encode_instruction: invalid registers for '%s' (line %d)\n",
                instr->opcode, instr->line_number);
@@ -94,9 +99,79 @@ uint32_t encode_instruction(Instruction *instr)
                op_name, rd, rs1, rs2, encoded);
         return encoded;
     }
+    else if(strcmp(instr->opcode, "addi") == 0)
+    {
+        if(instr->operand_count < 3)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'addi' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        int rs1 = reg_index(instr->operands[1]);
+        int32_t imm = parse_immediate(instr->operands[2]);
+
+        if(rd < 0 || rs1 < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid registers for 'addi' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+        if(!fits_imm12(imm))
+        {
+            printf("[ERROR] encode_instruction: immediate out of 12-bit range for 'addi' (line %d, imm=%d)\n",
+                   instr->line_number, imm);
+            return 0;
+        }
+
+        uint8_t opcode = 0x13;  
+        uint8_t funct3 = 0x0;   
+
+        uint32_t encoded = build_itype((uint32_t)imm, (uint32_t)rs1, funct3, (uint32_t)rd, opcode);
+        enc.value = encoded;
+        printf("[ENCODE] ADDI x%d, x%d, %d -> 0x%08X\n", 
+            rd, rs1, imm, encoded);
+        return enc.value;
+    }
+    else if(strcmp(instr->opcode, "li") == 0)
+    {
+        if(instr->operand_count < 2)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'li' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        int32_t imm = parse_immediate(instr->operands[1]);
+
+        if(rd < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid destination register for 'li' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+        if(!fits_imm12(imm))
+        {
+            printf("[ERROR] encode_instruction: 'li' immediate out of 12-bit range (line %d, imm=%d)\n",
+                   instr->line_number, imm);
+            return 0;
+        }
+
+        int rs1 = 0;     
+        uint8_t opcode = 0x13;
+        uint8_t funct3 = 0x0;
+
+        uint32_t encoded = build_itype((uint32_t)imm, (uint32_t)rs1, funct3, (uint32_t)rd, opcode);
+        enc.value = encoded;
+        printf("[ENCODE] LI x%d, %d -> (ADDI x%d, x0, %d) -> 0x%08X\n",
+            rd, imm, rd, imm, encoded);
+        return enc.value;
+    }
     else if(strcmp(instr->opcode, "lw") == 0)
     {
-        if (instr->operand_count < 2)
+        if(instr->operand_count < 2)
         {
             printf("[ERROR] encode_instruction: not enough operands for 'lw' (line %d)\n",
                    instr->line_number);
@@ -104,7 +179,7 @@ uint32_t encode_instruction(Instruction *instr)
         }
 
         int rd = reg_index(instr->operands[0]);
-        if (rd < 0)
+        if(rd < 0)
         {
             printf("[ERROR] Invalid destination register for lw: %s (line %d)\n",
                    instr->operands[0], instr->line_number);
@@ -113,7 +188,7 @@ uint32_t encode_instruction(Instruction *instr)
 
         int32_t offset;
         int rs1;
-        if (parse_memory_operand(instr->operands[1], &offset, &rs1) < 0)
+        if(parse_memory_operand(instr->operands[1], &offset, &rs1) < 0)
         {
             printf("[ERROR] Failed to parse memory operand for lw (line %d)\n", instr->line_number);
             return 0;
@@ -129,7 +204,7 @@ uint32_t encode_instruction(Instruction *instr)
     }
     else if(strcmp(instr->opcode, "sw") == 0)
     {
-        if (instr->operand_count < 2)
+        if(instr->operand_count < 2)
         {
             printf("[ERROR] encode_instruction: not enough operands for 'sw' (line %d)\n",
                    instr->line_number);
@@ -137,7 +212,7 @@ uint32_t encode_instruction(Instruction *instr)
         }
 
         int rs2 = reg_index(instr->operands[0]);
-        if (rs2 < 0)
+        if(rs2 < 0)
         {
             printf("[ERROR] Invalid source register for sw: %s (line %d)\n",
                    instr->operands[0], instr->line_number);
@@ -146,7 +221,7 @@ uint32_t encode_instruction(Instruction *instr)
 
         int32_t offset;
         int rs1;
-        if (parse_memory_operand(instr->operands[1], &offset, &rs1) < 0)
+        if(parse_memory_operand(instr->operands[1], &offset, &rs1) < 0)
         {
             printf("[ERROR] Failed to parse memory operand for sw (line %d)\n", instr->line_number);
             return 0;

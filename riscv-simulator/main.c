@@ -64,12 +64,14 @@ int main(void)
     printf("[OK] Program loaded at address 0x00000000\n");
 
     // ===== STEP 4B: LOAD DATA INTO MEMORY (AFTER INSTRUCTIONS) =====
-    printf("\n[STEP 4B] Loading initial data into memory...\n");
     uint32_t data_offset = program.instruction_count * 4;  
-    memory_write32(&m, data_offset,      10);   
-    memory_write32(&m, data_offset + 4,  5);    
-    memory_write32(&m, data_offset + 8,  20);   
-    memory_write32(&m, data_offset + 12, 8);    
+    if (program.data_count > 0)
+    {
+        printf("\n[STEP 4B] Loading data section into memory...\n");
+        load_data_into_memory(&m, &program, data_offset);
+        printf("[OK] Data loaded starting at address 0x%08X\n", data_offset);
+    }
+
     printf("[OK] Data loaded at address 0x%08X\n", data_offset);
 
     printf("\n[DEBUG] Memory dump after loading:\n");

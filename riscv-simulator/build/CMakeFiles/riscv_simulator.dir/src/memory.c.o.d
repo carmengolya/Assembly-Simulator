@@ -53,8 +53,10 @@ CMakeFiles/riscv_simulator.dir/src/memory.c.o: \
  /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
  /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
- /home/carmen/Assembly-Simulator/riscv-simulator/include/memory.h \
+ /home/carmen/Assembly-Simulator/riscv-simulator/include/assembler.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h /usr/include/stdint.h \
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
- /usr/include/x86_64-linux-gnu/bits/stdint-least.h
+ /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
+ /home/carmen/Assembly-Simulator/riscv-simulator/include/memory.h \
+ /home/carmen/Assembly-Simulator/riscv-simulator/include/assembler.h

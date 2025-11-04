@@ -110,6 +110,7 @@ CMakeFiles/riscv_simulator.dir/src/assembler.c.o: /home/carmen/Assembly-Simulato
   /usr/include/features-time64.h \
   /usr/include/features.h \
   /usr/include/stdc-predef.h \
+  /usr/include/stdint.h \
   /usr/include/stdio.h \
   /usr/include/stdlib.h \
   /usr/include/string.h \
@@ -126,6 +127,8 @@ CMakeFiles/riscv_simulator.dir/src/assembler.c.o: /home/carmen/Assembly-Simulato
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
   /usr/include/x86_64-linux-gnu/bits/select.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
+  /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
+  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
   /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
   /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
   /usr/include/x86_64-linux-gnu/bits/struct_mutex.h \
@@ -155,6 +158,7 @@ CMakeFiles/riscv_simulator.dir/src/assembler.c.o: /home/carmen/Assembly-Simulato
   /usr/include/x86_64-linux-gnu/bits/uintn-identity.h \
   /usr/include/x86_64-linux-gnu/bits/waitflags.h \
   /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
+  /usr/include/x86_64-linux-gnu/bits/wchar.h \
   /usr/include/x86_64-linux-gnu/bits/wordsize.h \
   /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
   /usr/include/x86_64-linux-gnu/gnu/stubs.h \
@@ -162,7 +166,8 @@ CMakeFiles/riscv_simulator.dir/src/assembler.c.o: /home/carmen/Assembly-Simulato
   /usr/include/x86_64-linux-gnu/sys/select.h \
   /usr/include/x86_64-linux-gnu/sys/types.h \
   /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h \
-  /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h
+  /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h \
+  /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h
 
 CMakeFiles/riscv_simulator.dir/src/cpu.c.o: /home/carmen/Assembly-Simulator/riscv-simulator/src/cpu.c \
   /home/carmen/Assembly-Simulator/riscv-simulator/include/alu.h \
@@ -315,6 +320,7 @@ CMakeFiles/riscv_simulator.dir/src/encoder.c.o: /home/carmen/Assembly-Simulator/
   /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h
 
 CMakeFiles/riscv_simulator.dir/src/memory.c.o: /home/carmen/Assembly-Simulator/riscv-simulator/src/memory.c \
+  /home/carmen/Assembly-Simulator/riscv-simulator/include/assembler.h \
   /home/carmen/Assembly-Simulator/riscv-simulator/include/memory.h \
   /usr/include/alloca.h \
   /usr/include/ctype.h \

@@ -184,6 +184,7 @@ int cpu_decode(CPU *cpu, EncodedInstruction enc)
             return cpu_decode_rtype(cpu, enc);
 
         case 0x03:
+        case 0x13:
             return cpu_decode_itype(cpu, enc);
 
         case 0x23:
@@ -233,15 +234,21 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         }
         else
         {
-            printf("[ERROR] unsupported rtype function funct3 0x%X at PC 0x%08X\n",
-               funct3, cpu->pc);
+            printf("[ERROR] unsupported rtype function funct7 0x%X at PC 0x%08X\n",
+               funct7, cpu->pc);
             cpu->error = 1;
             return -1;
         }
     }
+    else
+    {
+        printf("[ERROR] cpu_execute_rtype: unsupported funct3 0x%X at PC 0x%08X\n",
+               funct3, cpu->pc);
+        cpu->error = 1;
+        return -1;
+    }
 
     int32_t result = alu_execute(operation, val_rs1, val_rs2);
-
     cpu_writeback(cpu, rd, result);
 
     printf("[EXEC] %s x%d, x%d, x%d -> x%d = 0x%08X (rs1=0x%08X, rs2=0x%08X)\n",
@@ -258,35 +265,67 @@ static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
         return -1;
     }
 
+    uint8_t opcode = itype_get_opcode(enc.value);
     uint8_t funct3 = itype_get_funct3(enc.value);
     int32_t imm = itype_get_immediate(enc.value);
     uint8_t rs1 = itype_get_rs1(enc.value);
     uint8_t rd = itype_get_rd(enc.value);
 
-    int32_t addr_base = cpu_get_reg(cpu, rs1);
-    uint32_t data_offset = cpu->program->instruction_count * 4;
-    uint32_t addr = data_offset + addr_base + imm;
-
     const char *op_name = "UNKNOWN";
     int32_t value = 0;
 
-    if(funct3 == 0x2)  
+    if(opcode == 0x03)
     {
-        op_name = "LW";
-        value = memory_read32(cpu->memory, addr);
-        printf("[EXEC] %s x%d, %d(x%d) -> Load from 0x%08X = 0x%08X\n",
-               op_name, rd, imm, rs1, addr, value);
+        if(funct3 == 0x2)  
+        {
+            int32_t addr_base = cpu_get_reg(cpu, rs1);
+            uint32_t data_offset = cpu->program->instruction_count * 4;
+            uint32_t addr = data_offset + addr_base + imm;
+
+            op_name = "LW";
+            value = memory_read32(cpu->memory, addr);
+            cpu_writeback(cpu, rd, value);
+            printf("[EXEC] %s x%d, %d(x%d) -> Load from 0x%08X = 0x%08X\n",
+                op_name, rd, imm, rs1, addr, value);
+            return 0;
+        }
+        else
+        {
+            printf("[ERROR] cpu_execute_itype: unsupported funct3 0x%X at PC 0x%08X\n",
+                funct3, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
     }
-    else
+    else if(opcode == 0x13)
     {
-        printf("[ERROR] cpu_execute_itype: unsupported funct3 0x%X at PC 0x%08X\n",
-               funct3, cpu->pc);
-        cpu->error = 1;
-        return -1;
+        if (funct3 == 0x00)  
+        {
+            int32_t val_rs1 = cpu_get_reg(cpu, rs1);
+            int32_t result  = val_rs1 + imm;
+            cpu_writeback(cpu, rd, result);
+
+            if(rs1 == 0)
+                printf("[EXEC] LI x%d, %d -> x%d = 0x%08X\n",
+                   rd, imm, rd, result);
+            else
+                printf("[EXEC] ADDI x%d, x%d, %d -> x%d = 0x%08X (rs1=0x%08X)\n",
+                   rd, rs1, imm, rd, result, val_rs1);
+            return 0;
+        }
+        else
+        {
+            printf("[ERROR] cpu_execute_itype: unsupported OP-IMM funct3 0x%X at PC 0x%08X\n",
+                funct3, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
     }
 
-    cpu_writeback(cpu, rd, value);
-    return 0;
+    printf("[ERROR] cpu_execute_itype: unsupported I-type opcode 0x%02X at PC 0x%08X\n",
+           opcode, cpu->pc);
+    cpu->error = 1;
+    return -1;
 }
 
 static int cpu_execute_stype(CPU *cpu, EncodedInstruction enc)
@@ -316,16 +355,13 @@ static int cpu_execute_stype(CPU *cpu, EncodedInstruction enc)
         printf("[EXEC] %s x%d, %d(x%d) -> Store 0x%08X to 0x%08X\n",
                op_name, rs2, imm, rs1, value, addr);
         memory_write32(cpu->memory, addr, value);
-    }
-    else
-    {
-        printf("[ERROR] cpu_execute_stype: unsupported funct3 0x%X at PC 0x%08X\n",
-               funct3, cpu->pc);
-        cpu->error = 1;
-        return -1;
+        return 0;
     }
 
-    return 0;
+    printf("[ERROR] cpu_execute_stype: unsupported funct3 0x%X at PC 0x%08X\n",
+        funct3, cpu->pc);
+    cpu->error = 1;
+    return -1;
 }
 
 int cpu_execute(CPU *cpu, EncodedInstruction enc)
@@ -339,7 +375,8 @@ int cpu_execute(CPU *cpu, EncodedInstruction enc)
     uint8_t opcode = enc.value & 0x7F;
     switch(opcode)
     {
-        case 0x03: 
+        case 0x03:
+        case 0x13:
             return cpu_execute_itype(cpu, enc);
 
         case 0x23:  
