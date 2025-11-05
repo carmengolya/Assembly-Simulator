@@ -79,7 +79,7 @@ void load_program_into_memory(Memory *m, const uint32_t *program, size_t len_wor
 
 void load_data_into_memory(Memory *m, const AssemblyProgram *program, uint32_t data_offset)
 {
-    if (program == NULL || program->data_count == 0) 
+    if(program == NULL || program->data_count == 0) 
     {
         return; 
     }
@@ -108,7 +108,7 @@ void memory_dump_words(Memory *m, uint32_t addr, size_t words)
     }
 
     size_t start = (size_t)addr;
-    if (start >= m->size) 
+    if(start >= m->size) 
     {
         printf("[ERROR] memory_dump_words: start address out of bounds\n");
         return;
@@ -116,7 +116,7 @@ void memory_dump_words(Memory *m, uint32_t addr, size_t words)
 
     size_t available_bytes = m->size - start;
     size_t available_words = available_bytes / 4u;
-    if (words == 0 || words > available_words) 
+    if(words == 0 || words > available_words) 
     {
         words = available_words;
     } 

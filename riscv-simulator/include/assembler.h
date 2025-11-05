@@ -6,6 +6,7 @@
 #define MAX_OPERANDS 3
 #define MAX_OPERAND_SIZE 20
 #define MAX_INSTRUCTIONS 1024
+#define MAX_DATA 1024
     
 #define MAX_LINE_SIZE 1024
 
@@ -31,7 +32,7 @@ typedef struct
     Instruction instructions[MAX_INSTRUCTIONS];
     int instruction_count;
 
-    DataEntry *data;
+    DataEntry data[MAX_DATA];
     int data_count;
 } AssemblyProgram;
 

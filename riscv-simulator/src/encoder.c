@@ -39,14 +39,26 @@ static uint32_t build_stype(uint32_t imm, uint32_t rs2, uint32_t rs1, uint32_t f
            ( opcode  & 0x7F );
 }
 
+static uint32_t build_utype(uint32_t imm, uint32_t rd, uint32_t opcode)
+{
+    return ((imm & 0xFFFFF)  << 12)  |
+           ((rd    & 0x1F)   <<  7)  |
+           ( opcode & 0x7F );
+}
+
 static int fits_imm12(int32_t imm) 
 {
     return (imm >= -2048 && imm <= 2047);
 }
 
+static int fits_imm20(int32_t imm)
+{
+    return (imm >= -524288 && imm <= 524287);
+}
+
 uint32_t encode_instruction(Instruction *instr)
 {
-    if (!instr)
+    if(!instr)
     {
         printf("[ERROR] encode_instruction: instr is NULL\n");
         return 0;
@@ -168,6 +180,66 @@ uint32_t encode_instruction(Instruction *instr)
         printf("[ENCODE] LI x%d, %d -> (ADDI x%d, x0, %d) -> 0x%08X\n",
             rd, imm, rd, imm, encoded);
         return enc.value;
+    }
+    else if(strcmp(instr->opcode, "lui") == 0)
+    {
+        if(instr->operand_count < 2)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'lui' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        int32_t imm = parse_immediate(instr->operands[1]);
+
+        if(rd < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid destination register for 'lui' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+        if(!fits_imm20(imm))
+        {
+            printf("[ERROR] encode_instruction: immediate out of 20-bit range for 'lui' (line %d, imm=%d)\n",
+                   instr->line_number, imm);
+            return 0;
+        }
+
+        uint32_t encoded = build_utype((uint32_t)imm, (uint32_t)rd, 0x37);
+        printf("[ENCODE] LUI x%d, 0x%05X -> 0x%08X\n",
+               rd, (unsigned)((uint32_t)imm & 0xFFFFF), encoded);
+        return encoded;
+    }
+    else if(strcmp(instr->opcode, "auipc") == 0)
+    {
+        if(instr->operand_count < 2)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'auipc' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        int32_t imm = parse_immediate(instr->operands[1]);
+
+        if (rd < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid destination register for 'auipc' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+        if (!fits_imm20(imm))
+        {
+            printf("[ERROR] encode_instruction: immediate out of 20-bit range for 'auipc' (line %d, imm=%d)\n",
+                   instr->line_number, imm);
+            return 0;
+        }
+
+        uint32_t encoded = build_utype((uint32_t)imm, (uint32_t)rd, 0x17);
+        printf("[ENCODE] AUIPC x%d, 0x%05X -> 0x%08X\n",
+               rd, (unsigned)((uint32_t)imm & 0xFFFFF), encoded);
+        return encoded;
     }
     else if(strcmp(instr->opcode, "lw") == 0)
     {

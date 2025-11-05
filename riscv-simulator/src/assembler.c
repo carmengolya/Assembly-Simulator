@@ -109,6 +109,7 @@ int read_asm_file(char *filename, AssemblyProgram *program)
     eliminate_block_comments(buffer);
 
     program->instruction_count = 0;
+    program->data_count = 0;
 
     char *line_ptr = buffer;
     char line[MAX_LINE_SIZE];

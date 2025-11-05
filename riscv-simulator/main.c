@@ -7,7 +7,7 @@
 #include "encoder.h"
 #include "memory.h"
 
-int main(void) 
+int main(int argc, char **argv) 
 {
     printf("=================================================================\n");
     printf("        RISC-V Assembly Simulator - Executor Test\n");
@@ -15,8 +15,14 @@ int main(void)
 
     // ===== STEP 1: PARSE ASM FILE =====
     printf("[STEP 1] Parsing assembly file...\n");
-    char *filename = "/home/carmen/Assembly-Simulator/riscv-simulator/tests/add_sub.asm";
-    AssemblyProgram program;
+    if(argc != 2)
+    {
+        printf("[ERROR] main: not enough arguments.\n");
+        return 1;
+    }
+
+    char *filename = argv[1];
+    AssemblyProgram program = {0};
 
     if(read_asm_file(filename, &program) < 0)
     {
@@ -41,7 +47,7 @@ int main(void)
     }
 
     int encoded_count = 0;
-    for (int i = 0; i < program.instruction_count; ++i)
+    for(int i = 0; i < program.instruction_count; ++i)
     {
         Instruction *instr = &program.instructions[i];
 
@@ -49,7 +55,7 @@ int main(void)
         for (int j = 0; j < instr->operand_count; ++j)
         {
             printf("%s", instr->operands[j]);
-            if (j + 1 < instr->operand_count) printf(", ");
+            if(j + 1 < instr->operand_count) printf(", ");
         }
 
         enc[i] = encode_instruction(instr);
@@ -65,7 +71,7 @@ int main(void)
 
     // ===== STEP 4B: LOAD DATA INTO MEMORY (AFTER INSTRUCTIONS) =====
     uint32_t data_offset = program.instruction_count * 4;  
-    if (program.data_count > 0)
+    if(program.data_count > 0)
     {
         printf("\n[STEP 4B] Loading data section into memory...\n");
         load_data_into_memory(&m, &program, data_offset);
@@ -94,7 +100,7 @@ int main(void)
     
     printf("-----------------------------------------------------------------\n");
 
-    if (exec_result < 0)
+    if(exec_result < 0)
     {
         printf("[FAILED] CPU execution failed!\n");
         free(enc);
@@ -102,6 +108,8 @@ int main(void)
         return 1;
     }
 
+    printf("\n[DEBUG] Memory dump (data region) after execution:\n");
+    memory_dump_words(&m, data_offset, 8);
     // ===== STEP 7: PRINT FINAL STATE =====
     printf("\n[STEP 7] Final CPU state:\n");
     printf("-----------------------------------------------------------------\n");

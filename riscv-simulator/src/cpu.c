@@ -22,7 +22,7 @@ void cpu_init(CPU *cpu)
 
 void cpu_init_with_program(CPU *cpu, Memory *memory, AssemblyProgram *program)
 {
-    if (!cpu || !memory || !program)
+    if(!cpu || !memory || !program)
     {
         printf("[ERROR] null argument for cpu, memory or program.\n");
         return;
@@ -65,7 +65,7 @@ int32_t cpu_get_reg(CPU *cpu, int index)
 
 void cpu_print_registers(CPU *cpu)
 {
-    if (!cpu)
+    if(!cpu)
     {
         printf("[ERROR] cpu_print_registers: CPU is NULL\n");
         return;
@@ -77,7 +77,7 @@ void cpu_print_registers(CPU *cpu)
     {
         printf("x%02d: 0x%08X (%11d)", i, cpu->regs[i], cpu->regs[i]);
 
-        if ((i + 1) % 2 == 0)
+        if((i + 1) % 2 == 0)
             printf("\n");
         else
             printf(" | ");
@@ -86,7 +86,7 @@ void cpu_print_registers(CPU *cpu)
 
 void cpu_print_state(CPU *cpu)
 {
-    if (!cpu)
+    if(!cpu)
     {
         printf("[ERROR] cpu_print_state: CPU is NULL\n");
         return;
@@ -118,7 +118,7 @@ EncodedInstruction cpu_fetch(CPU *cpu)
 
 static int cpu_decode_rtype(CPU *cpu, EncodedInstruction enc)
 {
-    if (!cpu)
+    if(!cpu)
     {
         printf("[ERROR] cpu_decode_rtype: CPU is NULL\n");
         return -1;
@@ -138,7 +138,7 @@ static int cpu_decode_rtype(CPU *cpu, EncodedInstruction enc)
 
 static int cpu_decode_itype(CPU *cpu, EncodedInstruction enc)
 {
-    if (!cpu)
+    if(!cpu)
     {
         printf("[ERROR] cpu_decode_itype: CPU is NULL\n");
         return -1;
@@ -157,7 +157,7 @@ static int cpu_decode_itype(CPU *cpu, EncodedInstruction enc)
 
 static int cpu_decode_stype(CPU *cpu, EncodedInstruction enc)
 {
-    if (!cpu)
+    if(!cpu)
     {
         printf("[ERROR] cpu_decode_stype: CPU is NULL\n");
         return -1;
@@ -165,6 +165,23 @@ static int cpu_decode_stype(CPU *cpu, EncodedInstruction enc)
 
     printf("[DECODE] S-Type (placeholder)\n");
 
+    return 0;
+}
+
+static int cpu_decode_utype(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu_decode_utype: CPU is NULL\n");
+        return -1;
+    }
+
+    uint8_t rd  = utype_get_rd(enc.value);
+    uint32_t imm20 = (uint32_t)utype_get_imm20(enc.value);
+    uint8_t opcode = utype_get_opcode(enc.value);
+    const char *name = (opcode == 0x37) ? "LUI" : ((opcode == 0x17) ? "AUIPC" : "U-TYPE");
+
+    printf("[DECODE] %s: rd=%d, imm20=0x%05X\n", name, rd, imm20);
     return 0;
 }
 
@@ -189,6 +206,10 @@ int cpu_decode(CPU *cpu, EncodedInstruction enc)
 
         case 0x23:
             return cpu_decode_stype(cpu, enc);
+
+        case 0x17:
+        case 0x37:
+            return cpu_decode_utype(cpu, enc);
 
         default:
             {
@@ -299,7 +320,7 @@ static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
     }
     else if(opcode == 0x13)
     {
-        if (funct3 == 0x00)  
+        if(funct3 == 0x00)  
         {
             int32_t val_rs1 = cpu_get_reg(cpu, rs1);
             int32_t result  = val_rs1 + imm;
@@ -364,6 +385,42 @@ static int cpu_execute_stype(CPU *cpu, EncodedInstruction enc)
     return -1;
 }
 
+static int cpu_execute_utype(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu_execute_utype: CPU is null.\n");
+        return -1;
+    }
+
+    uint8_t opcode = utype_get_opcode(enc.value);
+    uint8_t rd = utype_get_rd(enc.value);
+    int32_t imm_aligned = utype_get_immediate(enc.value);
+
+    if (opcode == 0x37)
+    {
+        cpu_writeback(cpu, rd, imm_aligned);
+        printf("[EXEC] LUI x%d, 0x%05X -> x%d = 0x%08X\n",
+               rd, (unsigned)utype_get_imm20(enc.value), rd, (uint32_t)imm_aligned);
+        return 0;
+    }
+    else if (opcode == 0x17)
+    {
+        uint32_t pc_before = cpu->pc - 4; 
+        uint32_t result = pc_before + (uint32_t)imm_aligned;
+        
+        cpu_writeback(cpu, rd, (int32_t)result);
+        printf("[EXEC] AUIPC x%d, 0x%05X -> x%d = PC(0x%08X) + 0x%08X = 0x%08X\n",
+               rd, (unsigned)utype_get_imm20(enc.value), rd, pc_before, (uint32_t)imm_aligned, result);
+        return 0;
+    }
+
+    printf("[ERROR] cpu_execute_utype: unsupported U-type opcode 0x%02X at PC 0x%08X\n",
+           opcode, cpu->pc);
+    cpu->error = 1;
+    return -1;
+}
+
 int cpu_execute(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
@@ -384,6 +441,10 @@ int cpu_execute(CPU *cpu, EncodedInstruction enc)
 
         case 0x33:
             return cpu_execute_rtype(cpu, enc);
+
+        case 0x17:
+        case 0x37:
+            return cpu_execute_utype(cpu, enc);
 
         default:
         {
@@ -422,7 +483,7 @@ int cpu_step(CPU *cpu)
 
     uint32_t program_end = cpu->program->instruction_count * 4;
 
-    if (cpu->pc >= program_end)
+    if(cpu->pc >= program_end)
     {
         printf("[INFO] cpu_step: PC (0x%08X) reached end of program (program size: %d bytes)\n",
                cpu->pc, program_end);
@@ -447,14 +508,14 @@ int cpu_step(CPU *cpu)
     cpu->pc += 4; 
 
     // 2. decode
-    if (cpu_decode(cpu, enc) < 0)
+    if(cpu_decode(cpu, enc) < 0)
     {
         printf("[ERROR] cpu_step: decode failed\n");
         return -1;
     }
 
     // 3. execute
-    if (cpu_execute(cpu, enc) < 0)
+    if(cpu_execute(cpu, enc) < 0)
     {
         printf("[ERROR] cpu_step: execution failed\n");
         return -1;
@@ -467,7 +528,7 @@ int cpu_step(CPU *cpu)
 
 int cpu_run(CPU *cpu)
 {
-    if (!cpu)
+    if(!cpu)
     {
         printf("[ERROR] cpu_run: CPU is NULL\n");
         return -1;
@@ -477,7 +538,7 @@ int cpu_run(CPU *cpu)
 
     while (!cpu->halted && cpu->instructions_executed < 1000)
     {
-        if (cpu_step(cpu) < 0)
+        if(cpu_step(cpu) < 0)
         {
             printf("[ERROR] cpu_run: execution failed at step %u\n",
                    cpu->instructions_executed);
@@ -485,7 +546,7 @@ int cpu_run(CPU *cpu)
         }
     }
 
-    if (cpu->instructions_executed >= 1000)
+    if(cpu->instructions_executed >= 1000)
     {
         printf("[WARN] cpu_run: execution limit (1000 instructions) reached\n");
     }

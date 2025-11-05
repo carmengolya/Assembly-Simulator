@@ -25,14 +25,14 @@ static const RegAlias reg_aliases[] = {
 
 static void trim_inplace(char *s)
 {
-    if (!s) 
+    if(!s) 
         return;
 
     char *start = s;
     while (*start && isspace((unsigned char)*start)) 
         start++;
 
-    if (start != s) 
+    if(start != s) 
         memmove(s, start, strlen(start) + 1);
 
     int len = (int)strlen(s);
@@ -62,14 +62,14 @@ int reg_index(const char *name)
     if(tmp[0] == 'x' || tmp[0] == 'X')
     { 
         const char *num = tmp + 1;
-        if (*num == '\0') 
+        if(*num == '\0') 
             return -1;
         
         char *endp = NULL;
         long v = strtol(num, &endp, 10);
-        if (*endp != '\0') 
+        if(*endp != '\0') 
             return -1;
-        if (v < 0 || v > 31) 
+        if(v < 0 || v > 31) 
             return -1;
         return (int)v;
     }
@@ -78,7 +78,7 @@ int reg_index(const char *name)
     to_lower_inplace(tmp);
     for(int i = 0; reg_aliases[i].name; i++) 
     {
-        if (strcmp(tmp, reg_aliases[i].name) == 0)
+        if(strcmp(tmp, reg_aliases[i].name) == 0)
             return reg_aliases[i].index;
     }
     return -1;
@@ -86,7 +86,7 @@ int reg_index(const char *name)
 
 int32_t parse_immediate(const char *str)
 {
-    if (!str || strlen(str) == 0)
+    if(!str || strlen(str) == 0)
         return 0;
 
     const char *start = str;
@@ -99,11 +99,11 @@ int32_t parse_immediate(const char *str)
 
 int parse_memory_operand(const char *operand, int32_t *out_offset, int *out_reg)
 {
-    if (!operand || !out_offset || !out_reg)
+    if(!operand || !out_offset || !out_reg)
         return -1;
 
     char *paren = strchr(operand, '(');
-    if (!paren)
+    if(!paren)
     {
         printf("[ERROR] Invalid memory operand format (expected 'offset(register)'): %s\n", operand);
         return -1;
@@ -115,7 +115,7 @@ int parse_memory_operand(const char *operand, int32_t *out_offset, int *out_reg)
     *out_offset = parse_immediate(offset_str);
 
     char *close_paren = strchr(paren, ')');
-    if (!close_paren)
+    if(!close_paren)
     {
         printf("[ERROR] Missing closing parenthesis in memory operand: %s\n", operand);
         return -1;
@@ -126,7 +126,7 @@ int parse_memory_operand(const char *operand, int32_t *out_offset, int *out_reg)
     reg_str[close_paren - paren - 1] = '\0';
 
     *out_reg = reg_index(reg_str);
-    if (*out_reg < 0)
+    if(*out_reg < 0)
     {
         printf("[ERROR] Invalid register in memory operand: %s\n", reg_str);
         return -1;

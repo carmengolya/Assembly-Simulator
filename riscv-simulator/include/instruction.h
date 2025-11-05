@@ -142,7 +142,7 @@ static inline int32_t stype_get_immediate(uint32_t instr)
     
     int32_t imm = (imm11_5 << 5) | imm4_0; 
     
-    if (imm & 0x800)  // if it's signed
+    if(imm & 0x800)  // if it's signed
         imm |= 0xFFFFF000; // extend it with 1s
     
     return imm;
@@ -152,6 +152,44 @@ typedef struct
 {
     uint32_t value;
 } STypeEncoding;
+
+/**
+ * U-Type Instruction Format (RISC-V)
+ * 
+ * Layout (32 biți):
+ * 
+ *  31             12 11    7 6      0
+ *  +----------------+-------+-------+
+ *  |    immediate   |  rd   |opcode |
+ *  +----------------+-------+-------+
+ *        20 biți     5 biți   7 biți
+ *
+ */
+
+static inline uint8_t utype_get_opcode(uint32_t instr)
+{
+    return instr & 0x7F;  // [6:0]
+}
+
+static inline uint8_t utype_get_rd(uint32_t instr)
+{
+    return (instr >> 7) & 0x1F;  // [11:7]
+}
+
+static inline int32_t utype_get_imm20(uint32_t instr)
+{
+    return (int32_t)((instr >> 12) & 0xFFFFF);
+}
+
+static inline int32_t utype_get_immediate(uint32_t instr)
+{
+    return (int32_t)(utype_get_imm20(instr) << 12);
+}
+
+typedef struct
+{
+    uint32_t value;
+} UTypeEncoding;
 
 typedef union 
 {
