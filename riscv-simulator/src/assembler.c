@@ -150,12 +150,14 @@ int read_asm_file(char *filename, AssemblyProgram *program)
         {
             in_data = 1;
             in_text = 0;
+            line_ptr = newline ? newline + 1 : NULL;
             continue;
         }
         else if(strcmp(line, ".text") == 0)
         {
             in_text = 1;
             in_data = 0;
+            line_ptr = newline ? newline + 1 : NULL;
             continue;
         }
 

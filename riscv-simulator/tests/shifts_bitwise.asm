@@ -1,6 +1,6 @@
 .data
-val1: .word 15   # x2 = 15
-val2: .word 2    # x3 = 2
+val1: .word 15   // x2 = 15
+val2: .word 2    // x3 = 2
 
 .text
 lw x2, 0(x0)
