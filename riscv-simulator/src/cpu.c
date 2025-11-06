@@ -261,6 +261,46 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
             return -1;
         }
     }
+    else if(funct3 == 0x01)
+    {
+        operation = ALU_SLL;
+        op_name = "SLL";
+    }
+    else if(funct3 == 0x04)
+    {
+        operation = ALU_XOR;
+        op_name = "XOR";
+    }
+    else if(funct3 == 0x05)
+    {
+        if(funct7 == 0)
+        {
+            operation = ALU_SRL;
+            op_name = "SRL";
+        }
+        else if(funct7 == 0x20)
+        {
+            operation = ALU_SRA;
+            op_name = "SRA";
+        }
+        else
+        {
+            printf("[ERROR] unsupported rtype function funct7 0x%X at PC 0x%08X\n",
+               funct7, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
+    }
+    else if(funct3 == 0x06)
+    {
+        operation = ALU_OR;
+        op_name = "OR";
+    }
+    else if(funct3 == 0x07)
+    {
+        operation = ALU_AND;
+        op_name = "AND";
+    }
     else
     {
         printf("[ERROR] cpu_execute_rtype: unsupported funct3 0x%X at PC 0x%08X\n",

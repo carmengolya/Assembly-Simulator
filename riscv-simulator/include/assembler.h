@@ -23,6 +23,7 @@ typedef struct
 
 typedef struct
 {
+    char label[MAX_LABEL_SIZE];
     uint32_t value;
     uint32_t address;
 } DataEntry;

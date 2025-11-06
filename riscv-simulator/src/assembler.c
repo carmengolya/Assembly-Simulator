@@ -37,6 +37,12 @@ static void eliminate_comment(char *line)
     {
         *lineStart = '\0';
     }
+
+    lineStart = strchr(line, '#');
+    if(lineStart)
+    {
+        *lineStart = '\0';
+    }
 }
 
 static void eliminate_whitespaces(char *line)
@@ -92,7 +98,7 @@ int read_asm_file(char *filename, AssemblyProgram *program)
     char *buffer = (char *)malloc(fileSize + 1);
     if(!buffer)
     {
-        printf("[ERROR] memory allocation for file buffer.\n");
+        printf("[ERROR] memory allocation failed for file buffer.\n");
         fclose(f);
         return -1;
     }
@@ -115,6 +121,9 @@ int read_asm_file(char *filename, AssemblyProgram *program)
     char line[MAX_LINE_SIZE];
     int line_number = 0;
 
+    int in_data = 0;
+    int in_text = 0;
+
     while(line_ptr && *line_ptr != '\0')
     {
         // step 0: extracting one line
@@ -136,46 +145,110 @@ int read_asm_file(char *filename, AssemblyProgram *program)
             continue;
         }
 
-        // step 2: if it isn't an empty line, we create an instruction
-        Instruction instr = {0};
-        instr.line_number = line_number;
-
-        // step 3: parse the command through this syntax -> [ label: ] [opcode [operands]] 
-        // step 3.1: [label]
-        char *colon = strchr(line, ':');
-        if(colon)
+        // step 1.1: detecting the data and the text section
+        if(strcmp(line, ".data") == 0)
         {
-            *colon = '\0';
-            strncpy(instr.label, line, MAX_LABEL_SIZE - 1);
-            memmove(line, colon + 1, strlen(colon + 1) + 1);
-            eliminate_whitespaces(line);
+            in_data = 1;
+            in_text = 0;
+            continue;
+        }
+        else if(strcmp(line, ".text") == 0)
+        {
+            in_text = 1;
+            in_data = 0;
+            continue;
         }
 
-        // step 3.2: [opcode]
-        char *token = strtok(line, " \t");
-        if(!token)
+        // optional/alternative: if we don't have .data + .text sections, treat everything as instructions
+        if(!in_data && !in_text) 
         {
+            in_text = 1; 
+        }
+        // step 1.2: processing the two blocks
+        // step 1.2a: processing the .data block
+        if(in_data)
+        {
+            char *colon = strchr(line, ':');
+            char *data_ptr = line;
+            char label[MAX_LABEL_SIZE] = {0};
+
+            if(colon)
+            {
+                *colon = '\0';
+                strncpy(label, line, MAX_LABEL_SIZE - 1);
+                data_ptr = colon + 1;
+                eliminate_whitespaces(data_ptr);
+            }
+
+            if(strncmp(data_ptr, ".word", 5) == 0)
+            {
+                data_ptr += 5;
+                eliminate_whitespaces(data_ptr);
+
+                char *token = strtok(data_ptr, ",");
+                int first = 1;
+                while(token)
+                {
+                    eliminate_whitespaces(token);
+                    DataEntry entry = {0};
+                    entry.address = program->data_count * 4;
+                    entry.value = atoi(token);
+                    if(first)
+                    {
+                        strncpy(entry.label, label, MAX_LABEL_SIZE - 1);
+                        first = 0;
+                    }
+                    program->data[program->data_count++] = entry;
+                    token = strtok(NULL, ",");
+                }
+            }
+
             line_ptr = newline ? newline + 1 : NULL;
             continue;
         }
-        
-        strncpy(instr.opcode, token, MAX_OPCODE_SIZE - 1);
-        for(int i = 0; instr.opcode[i]; i++)
-            instr.opcode[i] = tolower(instr.opcode[i]);
-
-        // step 3.3: [... [operands]]
-        char *rest = strtok(NULL, "");
-        eliminate_whitespaces(rest);
-        if(rest)
+        // step 1.2b: processing the .text block
+        if(in_text)
         {
-            eliminate_whitespaces(rest);
-            if(strlen(rest) > 0)
-            {
-                instr.operand_count = parse_operands(rest, instr.operands);
-            }
-        }
+            // step 2: if it isn't an empty line, we create an instruction
+            Instruction instr = {0};
+            instr.line_number = line_number;
 
-        program->instructions[program->instruction_count++] = instr;
+            // step 3: parse the command through this syntax -> [ label: ] [opcode [operands]] 
+            // step 3.1: [label]
+            char *colon = strchr(line, ':');
+            if(colon)
+            {
+                *colon = '\0';
+                strncpy(instr.label, line, MAX_LABEL_SIZE - 1);
+                memmove(line, colon + 1, strlen(colon + 1) + 1);
+                eliminate_whitespaces(line);
+            }
+
+            // step 3.2: [opcode]
+            char *token = strtok(line, " \t");
+            if(!token)
+            {
+                line_ptr = newline ? newline + 1 : NULL;
+                continue;
+            }
+            
+            strncpy(instr.opcode, token, MAX_OPCODE_SIZE - 1);
+            for(int i = 0; instr.opcode[i]; i++)
+                instr.opcode[i] = tolower(instr.opcode[i]);
+
+            // step 3.3: [... [operands]]
+            char *rest = strtok(NULL, "");
+            if(rest)
+            {
+                eliminate_whitespaces(rest);
+                if(strlen(rest) > 0)
+                {
+                    instr.operand_count = parse_operands(rest, instr.operands);
+                }
+            }
+
+            program->instructions[program->instruction_count++] = instr;
+        }
 
         line_ptr = newline ? newline + 1 : NULL;
     }
@@ -200,5 +273,11 @@ void print_program(AssemblyProgram *program)
                 printf(", ");
         }
         printf("\n");
+    }
+
+    for(int i = 0; i < program->data_count; i++)
+    {
+        DataEntry *d = &program->data[i];
+        printf("DATA[%02d] %s = %d @ address %d\n", i, d->label, d->value, d->address);
     }
 }

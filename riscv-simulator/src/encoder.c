@@ -111,6 +111,68 @@ uint32_t encode_instruction(Instruction *instr)
                op_name, rd, rs1, rs2, encoded);
         return encoded;
     }
+    else if(strcmp(instr->opcode, "sll") == 0 || strcmp(instr->opcode, "srl") == 0 || strcmp(instr->opcode, "sra") == 0 ||
+        strcmp(instr->opcode, "and") == 0 || strcmp(instr->opcode, "or") == 0 || strcmp(instr->opcode, "xor") == 0)
+    {
+        if(instr->operand_count < 3)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for '%s' (line %d)\n",
+                   instr->opcode, instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        int rs1 = reg_index(instr->operands[1]);
+        int rs2 = reg_index(instr->operands[2]);
+
+        if(rd < 0 || rs1 < 0 || rs2 < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid registers for '%s' (line %d)\n",
+               instr->opcode, instr->line_number);
+            printf("  rd=%d, rs1=%d, rs2=%d\n", rd, rs1, rs2);
+            printf("  operands: '%s', '%s', '%s'\n", 
+                instr->operands[0], instr->operands[1], instr->operands[2]);
+            return 0;
+        }
+
+        uint8_t funct3, funct7 = 0x00;
+        uint8_t opcode = 0x33;
+
+        if(strcmp(instr->opcode, "sll") == 0)
+        {     
+            funct3 = 0x1;
+        }
+        else if(strcmp(instr->opcode, "srl") == 0)
+        {
+            funct3 = 0x5;
+        }
+        else if(strcmp(instr->opcode, "sra") == 0) 
+        {
+            funct3 = 0x5;
+            funct7 = 0x20;
+        }
+        else if(strcmp(instr->opcode, "and") == 0) 
+        {
+            funct3 = 0x7;
+        }
+        else if(strcmp(instr->opcode, "or")  == 0)
+        {
+            funct3 = 0x6;
+        }
+        else if(strcmp(instr->opcode, "xor") == 0)
+        {
+            funct3 = 0x4;
+        }
+        else
+        {
+            funct3 = 0x0;
+        }
+
+        uint32_t encoded = build_rtype(funct7, rs2, rs1, funct3, rd, opcode);
+        printf("[ENCODE] %s x%d, x%d, x%d -> 0x%08X\n",
+                instr->opcode, rd, rs1, rs2, encoded);
+        return encoded;
+    }
     else if(strcmp(instr->opcode, "addi") == 0)
     {
         if(instr->operand_count < 3)
