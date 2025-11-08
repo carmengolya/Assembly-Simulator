@@ -4,51 +4,56 @@
 
 [STEP 1] Parsing assembly file...
 [OK] Loaded 8 instructions
-[00] li x2, 10
-[01] li x4, 5
-[02] li x6, 20
-[03] li x7, 8
-[04] add x1, x2, x4
-[05] sub x5, x6, x7
-[06] sw x1, 16(x0)
-[07] sw x5, 20(x0)
+[00] lw x1, 0(x0)
+[01] blt x1, x0, 20
+[02] beq x1, x0, 16
+[03] addi x2, x0, 1
+[04] sw x2, 4(x0)
+[05] beq x0, x0, 12
+[06] addi x2, x0, 0
+[07] sw x2, 4(x0)
+DATA[00] in = 7 @ address 0
+DATA[01] out = 0 @ address 4
 
 [STEP 2] Initializing memory...
 [OK] Memory initialized (size: 400 bytes)
 
 [STEP 3] Encoding instructions...
-[00] li x2, 10[ENCODE] LI x2, 10 -> (ADDI x2, x0, 10) -> 0x00A00113
- -> encoded: 0x00A00113
-[01] li x4, 5[ENCODE] LI x4, 5 -> (ADDI x4, x0, 5) -> 0x00500213
- -> encoded: 0x00500213
-[02] li x6, 20[ENCODE] LI x6, 20 -> (ADDI x6, x0, 20) -> 0x01400313
- -> encoded: 0x01400313
-[03] li x7, 8[ENCODE] LI x7, 8 -> (ADDI x7, x0, 8) -> 0x00800393
- -> encoded: 0x00800393
-[04] add x1, x2, x4[ENCODE] ADD x1, x2, x4 -> 0x004100B3
- -> encoded: 0x004100B3
-[05] sub x5, x6, x7[ENCODE] SUB x5, x6, x7 -> 0x407302B3
- -> encoded: 0x407302B3
-[06] sw x1, 16(x0)[ENCODE] SW x1, 16(x0) -> 0x00102823
- -> encoded: 0x00102823
-[07] sw x5, 20(x0)[ENCODE] SW x5, 20(x0) -> 0x00502A23
- -> encoded: 0x00502A23
+[00] (PC=0x00000000) lw x1, 0(x0)[ENCODE] LW x1, 0(x0) -> 0x00002083
+ -> encoded: 0x00002083
+[01] (PC=0x00000004) blt x1, x0, 20[ENCODE] blt x1, x0, 20 -> off=20 (PC=0x00000004) -> 0x0000CA63
+ -> encoded: 0x0000CA63
+[02] (PC=0x00000008) beq x1, x0, 16[ENCODE] beq x1, x0, 16 -> off=16 (PC=0x00000008) -> 0x00008863
+ -> encoded: 0x00008863
+[03] (PC=0x0000000C) addi x2, x0, 1[ENCODE] ADDI x2, x0, 1 -> 0x00100113
+ -> encoded: 0x00100113
+[04] (PC=0x00000010) sw x2, 4(x0)[ENCODE] SW x2, 4(x0) -> 0x00202223
+ -> encoded: 0x00202223
+[05] (PC=0x00000014) beq x0, x0, 12[ENCODE] beq x0, x0, 12 -> off=12 (PC=0x00000014) -> 0x00000663
+ -> encoded: 0x00000663
+[06] (PC=0x00000018) addi x2, x0, 0[ENCODE] ADDI x2, x0, 0 -> 0x00000113
+ -> encoded: 0x00000113
+[07] (PC=0x0000001C) sw x2, 4(x0)[ENCODE] SW x2, 4(x0) -> 0x00202223
+ -> encoded: 0x00202223
 [OK] Encoded 8/8 instructions
 
 [STEP 4] Loading program into memory...
 [OK] Program loaded at address 0x00000000
+
+[STEP 4B] Loading data section into memory...
+[OK] Data loaded starting at address 0x00000020
 [OK] Data loaded at address 0x00000020
 
 [DEBUG] Memory dump after loading:
-00000000: 00a00113
-00000004: 00500213
-00000008: 01400313
-0000000c: 00800393
-00000010: 004100b3
-00000014: 407302b3
-00000018: 00102823
-0000001c: 00502a23
-00000020: 00000000
+00000000: 00002083
+00000004: 0000ca63
+00000008: 00008863
+0000000c: 00100113
+00000010: 00202223
+00000014: 00000663
+00000018: 00000113
+0000001c: 00202223
+00000020: 00000007
 00000024: 00000000
 00000028: 00000000
 0000002c: 00000000
@@ -125,66 +130,66 @@ x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
 
 === Starting CPU Execution ===
 
-[STEP 0] PC=0x00000000, Instruction=0x00A00113
+[STEP 0] PC=0x00000000, Instruction=0x00002083
+[DECODE DISPATCH] Opcode=0x03
+[DECODE] I-Type: funct3=0x2, rs1=0, rd=1, imm=0
+[EXEC] LW x1, 0(x0) -> Load from 0x00000020 = 0x00000007
+
+[STEP 1] PC=0x00000004, Instruction=0x0000CA63
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x4, rs1=1, rs2=0, imm=20
+[EXEC] BLT x1, x0, imm=20 -> NOT TAKEN (rs1=0x00000007, rs2=0x00000000)
+
+[STEP 2] PC=0x00000008, Instruction=0x00008863
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=1, rs2=0, imm=16
+[EXEC] BEQ x1, x0, imm=16 -> NOT TAKEN (rs1=0x00000007, rs2=0x00000000)
+
+[STEP 3] PC=0x0000000C, Instruction=0x00100113
 [DECODE DISPATCH] Opcode=0x13
-[DECODE] I-Type: funct3=0x0, rs1=0, rd=2, imm=10
-[EXEC] LI x2, 10 -> x2 = 0x0000000A
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=2, imm=1
+[EXEC] LI x2, 1 -> x2 = 0x00000001
 
-[STEP 1] PC=0x00000004, Instruction=0x00500213
-[DECODE DISPATCH] Opcode=0x13
-[DECODE] I-Type: funct3=0x0, rs1=0, rd=4, imm=5
-[EXEC] LI x4, 5 -> x4 = 0x00000005
-
-[STEP 2] PC=0x00000008, Instruction=0x01400313
-[DECODE DISPATCH] Opcode=0x13
-[DECODE] I-Type: funct3=0x0, rs1=0, rd=6, imm=20
-[EXEC] LI x6, 20 -> x6 = 0x00000014
-
-[STEP 3] PC=0x0000000C, Instruction=0x00800393
-[DECODE DISPATCH] Opcode=0x13
-[DECODE] I-Type: funct3=0x0, rs1=0, rd=7, imm=8
-[EXEC] LI x7, 8 -> x7 = 0x00000008
-
-[STEP 4] PC=0x00000010, Instruction=0x004100B3
-[DECODE DISPATCH] Opcode=0x33
-[DECODE] R-Type: funct7=0x00, rs2=4, rs1=2, funct3=0x0, rd=1
-[EXEC] ADD x1, x2, x4 -> x1 = 0x0000000F (rs1=0x0000000A, rs2=0x00000005)
-
-[STEP 5] PC=0x00000014, Instruction=0x407302B3
-[DECODE DISPATCH] Opcode=0x33
-[DECODE] R-Type: funct7=0x20, rs2=7, rs1=6, funct3=0x0, rd=5
-[EXEC] SUB x5, x6, x7 -> x5 = 0x0000000C (rs1=0x00000014, rs2=0x00000008)
-
-[STEP 6] PC=0x00000018, Instruction=0x00102823
+[STEP 4] PC=0x00000010, Instruction=0x00202223
 [DECODE DISPATCH] Opcode=0x23
 [DECODE] S-Type (placeholder)
-[EXEC] SW x1, 16(x0) -> Store 0x0000000F to 0x00000030
+[EXEC] SW x2, 4(x0) -> Store 0x00000001 to 0x00000024
 
-[STEP 7] PC=0x0000001C, Instruction=0x00502A23
-[DECODE DISPATCH] Opcode=0x23
-[DECODE] S-Type (placeholder)
-[EXEC] SW x5, 20(x0) -> Store 0x0000000C to 0x00000034
+[STEP 5] PC=0x00000014, Instruction=0x00000663
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=0, rs2=0, imm=12
+[EXEC] BEQ x0, x0, imm=12 -> TAKEN (rs1=0x00000000, rs2=0x00000000)
 [INFO] cpu_step: PC (0x00000020) reached end of program (program size: 32 bytes)
 
 === CPU Execution Finished ===
-Total instructions executed: 8
+Total instructions executed: 6
 -----------------------------------------------------------------
+
+[DEBUG] Memory dump (data region) after execution:
+00000020: 00000007
+00000024: 00000001
+00000028: 00000000
+0000002c: 00000000
+00000030: 00000000
+00000034: 00000000
+00000038: 00000000
+0000003c: 00000000
 
 [STEP 7] Final CPU state:
 -----------------------------------------------------------------
 
 === CPU STATE ===
 PC: 0x00000020
-Instructions executed: 8
+Instructions executed: 6
 Halted: YES
 Error: NO
 
 === REGISTERS ===
 PC: 0x00000020
-x00: 0x00000000 (          0) | x01: 0x0000000F (         15)
-x02: 0x0000000A (         10) | x03: 0x00000000 (          0)
-x04: 0x00000005 (          5) | x05: 0x0000000C (         12)
-x06: 0x00000014 (         20) | x07: 0x00000008 (          8)
+x00: 0x00000000 (          0) | x01: 0x00000007 (          7)
+x02: 0x00000001 (          1) | x03: 0x00000000 (          0)
+x04: 0x00000000 (          0) | x05: 0x00000000 (          0)
+x06: 0x00000000 (          0) | x07: 0x00000000 (          0)
 x08: 0x00000000 (          0) | x09: 0x00000000 (          0)
 x10: 0x00000000 (          0) | x11: 0x00000000 (          0)
 x12: 0x00000000 (          0) | x13: 0x00000000 (          0)
@@ -202,7 +207,7 @@ x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
 
 [SUMMARY]
   Program instructions: 8
-  Instructions executed: 8
+  Instructions executed: 6
   Final PC: 0x00000020
   CPU halted: YES
   CPU error: NO

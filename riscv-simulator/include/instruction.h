@@ -106,13 +106,13 @@ typedef struct
  /**
  * S-Type Instruction Format (RISC-V)
  * 
- * Layout (32 biți):
+ * Layout (32 biti):
  * 
  *  31       25 24   20 19   15 14 12 11    7 6        0
  *  +----------+-------+-------+------+--------+---------+
  *  |imm[11:5] |  rs2  |  rs1  |funct3|imm[4:0]|  opcode |
  *  +----------+-------+-------+------+--------+---------+
- *    7 biți    5 biți  5 biți  3 biți  5 biți   7 biți
+ *    7 biti    5 biti  5 biti  3 biti  5 biti   7 biti
  **/
 
 static inline uint8_t stype_get_opcode(uint32_t instr)
@@ -156,13 +156,13 @@ typedef struct
 /**
  * U-Type Instruction Format (RISC-V)
  * 
- * Layout (32 biți):
+ * Layout (32 biti):
  * 
  *  31             12 11    7 6      0
  *  +----------------+-------+-------+
  *  |    immediate   |  rd   |opcode |
  *  +----------------+-------+-------+
- *        20 biți     5 biți   7 biți
+ *        20 biti     5 biti   7 biti
  *
  */
 
@@ -191,11 +191,72 @@ typedef struct
     uint32_t value;
 } UTypeEncoding;
 
+/**
+ * B-Type Instruction Format (RISC-V)
+ * 
+ * Layout (32 biti):
+ * 
+ *  31       30          25 24    20 19    15 14    12 11       8 7      6       0
+ *  +----------+-----------+--------+--------+--------+----------+-------+-------+
+ *  | imm[12]  | imm[10:5] |  rs2   |  rs1   | funct3 | imm[4:1] |imm[11]|opcode |
+ *  +----------+-----------+--------+--------+--------+----------+-------+-------+
+ *     1 bit      6 biți     5 biți   5 biți   3 biți    4 biți    1 bit   7 biți
+ *
+ */
+
+static inline uint8_t btype_get_opcode(uint32_t instr)
+{
+    return instr & 0x7F;  // [6:0]
+}
+
+static inline uint8_t btype_get_funct3(uint32_t instr)
+{
+    return (uint8_t)((instr >> 12) & 0x07); // [14:12]
+}
+
+static inline uint8_t btype_get_rs1(uint32_t instr)
+{
+    return (uint8_t)((instr >> 15) & 0x1F); // [19:15]
+}
+
+static inline uint8_t btype_get_rs2(uint32_t instr)
+{
+    return (uint8_t)((instr >> 20) & 0x1F); // [24:20]
+}
+
+static inline int32_t btype_get_imm(uint32_t instr)
+{
+    int32_t imm = 0;
+
+    int32_t imm12   = (int32_t)((instr >> 31) & 0x1);
+    int32_t imm11   = (int32_t)((instr >> 7)  & 0x1);
+    int32_t imm10_5 = (int32_t)((instr >> 25) & 0x3F);
+    int32_t imm4_1  = (int32_t)((instr >> 8)  & 0x0F);
+
+    imm |= (imm12   << 12);
+    imm |= (imm11   << 11);
+    imm |= (imm10_5 << 5);
+    imm |= (imm4_1  << 1);
+
+    if (imm & (1 << 12))
+    {
+        imm |= ~((1 << 13) - 1);
+    }
+
+    return imm;
+}
+
+typedef struct
+{
+    uint32_t value;
+} BTypeEncoding;
+
 typedef union 
 {
     RTypeEncoding rtype;
     ITypeEncoding itype;
     STypeEncoding stype;
+    BTypeEncoding btype;
     uint32_t value;
 } EncodedInstruction;
 

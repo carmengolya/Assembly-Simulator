@@ -51,15 +51,28 @@ int main(int argc, char **argv)
     {
         Instruction *instr = &program.instructions[i];
 
-        printf("[%02d] %s ", i, instr->opcode);
+        printf("[%02d] (PC=0x%08X) ", i, instr->address);
+        if(instr->label[0] != '\0')
+            printf("%s: ", instr->label);
+        printf("%s ", instr->opcode);
+
         for (int j = 0; j < instr->operand_count; ++j)
         {
             printf("%s", instr->operands[j]);
             if(j + 1 < instr->operand_count) printf(", ");
         }
 
-        enc[i] = encode_instruction(instr);
+        uint32_t code = encode_instruction(&program, instr);
+        enc[i] = code;
         printf(" -> encoded: 0x%08X\n", enc[i]);
+        if(code == 0)
+        {
+            printf("[ERROR] Encoding failed at instruction %d (line %d). Aborting.\n",
+                i, instr->line_number);
+            free(enc);
+            memory_free(&m);
+            return 1;
+        }
         encoded_count++;
     }
     printf("[OK] Encoded %d/%d instructions\n", encoded_count, program.instruction_count);

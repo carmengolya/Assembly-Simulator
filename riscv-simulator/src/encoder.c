@@ -46,6 +46,26 @@ static uint32_t build_utype(uint32_t imm, uint32_t rd, uint32_t opcode)
            ( opcode & 0x7F );
 }
 
+static inline uint32_t build_btype(int32_t imm, uint32_t rs1, uint32_t rs2, uint32_t funct3)
+{
+    uint32_t opcode = 0x63;
+
+    uint32_t u = (uint32_t)imm;
+    uint32_t imm12   = (u >> 12) & 0x1;
+    uint32_t imm10_5 = (u >> 5)  & 0x3F;
+    uint32_t imm4_1  = (u >> 1)  & 0xF;
+    uint32_t imm11   = (u >> 11) & 0x1;
+
+    return (imm12 << 31) |
+           (imm10_5 << 25) |
+           (rs2 << 20) |
+           (rs1 << 15) |
+           (funct3 << 12) |
+           (imm4_1 << 8) |
+           (imm11 << 7) |
+           opcode;
+}
+
 static int fits_imm12(int32_t imm) 
 {
     return (imm >= -2048 && imm <= 2047);
@@ -56,8 +76,54 @@ static int fits_imm20(int32_t imm)
     return (imm >= -524288 && imm <= 524287);
 }
 
-uint32_t encode_instruction(Instruction *instr)
+static int fits_branch_offset(int32_t off)
 {
+    if(off & 1) return 0;
+    if(off < -4096 || off > 4094) return 0;
+    return 1;
+}
+
+static int32_t parse_branch_imm_or_label(AssemblyProgram *program, Instruction *instr, const char *token, int *ok)
+{
+    *ok = 0;
+    if(!token) return 0;
+
+    if( (token[0] >= 'a' && token[0] <= 'z') ||
+        (token[0] >= 'A' && token[0] <= 'Z') ||
+        token[0] == '_' )
+    {
+        uint32_t target;
+        if(find_symbol(program, token, &target) < 0)
+        {
+            printf("[ERROR] encode_branch: unknown label '%s' (line %d)\n",
+                   token, instr->line_number);
+            return 0;
+        }
+        int32_t offset = (int32_t)target - (int32_t)instr->address;
+        *ok = 1;
+        return offset;
+    }
+
+    char *endp = NULL;
+    long val = strtol(token, &endp, 0);
+    if(endp && *endp == '\0')
+    {
+        *ok = 1;
+        return (int32_t)val;
+    }
+
+    printf("[ERROR] encode_branch: invalid immediate/label '%s' (line %d)\n",
+           token, instr->line_number);
+    return 0;
+}
+
+uint32_t encode_instruction(AssemblyProgram *program, Instruction *instr)
+{
+    if(!program)
+    {
+        printf("[ERROR] encode_instruction: program is NULL\n");
+        return 0;
+    }
     if(!instr)
     {
         printf("[ERROR] encode_instruction: instr is NULL\n");
@@ -367,6 +433,59 @@ uint32_t encode_instruction(Instruction *instr)
         uint32_t encoded = build_stype(offset & 0xFFF, rs2, rs1, funct3, opcode);
         printf("[ENCODE] SW x%d, %d(x%d) -> 0x%08X\n",
                rs2, offset, rs1, encoded);
+        return encoded;
+    }
+    else if(strcmp(instr->opcode, "beq") == 0 ||
+            strcmp(instr->opcode, "bne") == 0 ||
+            strcmp(instr->opcode, "blt") == 0 ||
+            strcmp(instr->opcode, "bge") == 0)
+    {
+        if(instr->operand_count < 3)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for '%s' (line %d)\n",
+                   instr->opcode, instr->line_number);
+            return 0;
+        }
+
+        int rs1 = reg_index(instr->operands[0]);
+        int rs2 = reg_index(instr->operands[1]);
+        int parse_ok = 0;
+        int32_t offset = parse_branch_imm_or_label(program, instr, instr->operands[2], &parse_ok);
+
+        if(rs1 < 0 || rs2 < 0 || !parse_ok)
+        {
+            printf("[ERROR] encode_instruction: invalid operands for '%s' (line %d)\n",
+                   instr->opcode, instr->line_number);
+            return 0;
+        }
+        if(!fits_branch_offset(offset))
+        {
+            printf("[ERROR] encode_instruction: branch offset out of range for '%s' (line %d, off=%d)\n",
+                   instr->opcode, instr->line_number, offset);
+            return 0;
+        }
+
+        uint32_t funct3 = 0;
+        if(strcmp(instr->opcode, "beq") == 0)
+        {
+            funct3 = 0x0;
+        }
+        else if(strcmp(instr->opcode, "bne") == 0)
+        {
+            funct3 = 0x1;
+        }
+        else if(strcmp(instr->opcode, "blt") == 0)
+        {
+            funct3 = 0x4;
+        }
+        else if(strcmp(instr->opcode, "bge") == 0)
+        {
+            funct3 = 0x5;
+        }
+
+        uint32_t encoded = build_btype(offset, (uint32_t)rs1, (uint32_t)rs2, funct3);
+        printf("[ENCODE] %s x%d, x%d, %s -> off=%d (PC=0x%08X) -> 0x%08X\n",
+            instr->opcode, rs1, rs2, instr->operands[2], offset, instr->address, encoded);
         return encoded;
     }
 

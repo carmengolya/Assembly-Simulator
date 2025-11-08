@@ -4,6 +4,10 @@
 #include "instruction.h"
 #include "alu.h"
 
+// ================================================================= //
+//                              INIT                                 //
+// ================================================================= //
+
 void cpu_init(CPU *cpu)
 {
     for(int i = 1; i < REG_NUMBER; i++)
@@ -103,6 +107,10 @@ void cpu_print_state(CPU *cpu)
     printf("\n");
 }
 
+// ================================================================= //
+//                              FETCH                                //
+// ================================================================= //
+
 EncodedInstruction cpu_fetch(CPU *cpu)
 {
     EncodedInstruction enc = {0};
@@ -115,6 +123,10 @@ EncodedInstruction cpu_fetch(CPU *cpu)
     enc.value = memory_read32(cpu->memory, cpu->pc);
     return enc;
 }
+
+// ================================================================= //
+//                              DECODE                               //
+// ================================================================= //
 
 static int cpu_decode_rtype(CPU *cpu, EncodedInstruction enc)
 {
@@ -185,6 +197,17 @@ static int cpu_decode_utype(CPU *cpu, EncodedInstruction enc)
     return 0;
 }
 
+static int cpu_decode_btype(CPU *cpu, EncodedInstruction enc)
+{
+    uint32_t funct3 = btype_get_funct3(enc.value);
+    uint32_t rs1 = btype_get_rs1(enc.value);
+    uint32_t rs2 = btype_get_rs2(enc.value);
+    int32_t imm = btype_get_imm(enc.value);
+    printf("[DECODE] B-Type: funct3=0x%X, rs1=%u, rs2=%u, imm=%d\n",
+           funct3, rs1, rs2, imm);
+    return 0;
+}
+
 int cpu_decode(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
@@ -211,6 +234,9 @@ int cpu_decode(CPU *cpu, EncodedInstruction enc)
         case 0x37:
             return cpu_decode_utype(cpu, enc);
 
+        case 0x63:
+            return cpu_decode_btype(cpu, enc);
+
         default:
             {
                 printf("[ERROR] cpu_decode: unknown opcode 0x%02X at PC 0x%08X\n",
@@ -220,6 +246,10 @@ int cpu_decode(CPU *cpu, EncodedInstruction enc)
             }
     }
 }
+
+// ================================================================= //
+//                              EXECUTE                              //
+// ================================================================= //
 
 static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
 {
@@ -461,6 +491,55 @@ static int cpu_execute_utype(CPU *cpu, EncodedInstruction enc)
     return -1;
 }
 
+static int cpu_execute_btype(CPU *cpu, EncodedInstruction enc)
+{
+    uint32_t funct3 = btype_get_funct3(enc.value);
+    uint32_t rs1 = btype_get_rs1(enc.value);
+    uint32_t rs2 = btype_get_rs2(enc.value);
+    int32_t imm = btype_get_imm(enc.value);
+
+    int32_t v1 = cpu_get_reg(cpu, rs1);
+    int32_t v2 = cpu_get_reg(cpu, rs2);
+    int take = 0;
+    const char *name = NULL;
+
+    switch(funct3)
+    {
+        case 0x0:
+            name = "BEQ";
+            take = (v1 == v2);
+            break;
+        case 0x1:
+            name = "BNE";
+            take = (v1 != v2);
+            break;
+        case 0x4:
+            name = "BLT";
+            take = (v1 < v2);
+            break;
+        case 0x5:
+            name = "BGE";
+            take = (v1 >= v2);
+            break;
+        default:
+            printf("[ERROR] cpu_execute_btype: unsupported funct3=0x%X at PC=0x%08X\n",
+                   funct3, cpu->pc - 4);
+            cpu->error = 1;
+            return -1;
+    }
+
+    printf("[EXEC] %s x%d, x%d, imm=%d -> %s (rs1=0x%08X, rs2=0x%08X)\n",
+           name, rs1, rs2, imm, take ? "TAKEN" : "NOT TAKEN",
+           (uint32_t)v1, (uint32_t)v2);
+
+    if(take)
+    {
+        uint32_t pc_before_inc = cpu->pc - 4;
+        cpu->pc = pc_before_inc + imm;
+    }
+    return 0;
+}
+
 int cpu_execute(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
@@ -485,6 +564,9 @@ int cpu_execute(CPU *cpu, EncodedInstruction enc)
         case 0x17:
         case 0x37:
             return cpu_execute_utype(cpu, enc);
+
+        case 0x63:
+            return cpu_execute_btype(cpu, enc);
 
         default:
         {

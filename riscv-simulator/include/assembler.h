@@ -7,6 +7,7 @@
 #define MAX_OPERAND_SIZE 20
 #define MAX_INSTRUCTIONS 1024
 #define MAX_DATA 1024
+#define MAX_SYMBOLS 1024
     
 #define MAX_LINE_SIZE 1024
 
@@ -19,6 +20,7 @@ typedef struct
     char operands[MAX_OPERANDS][MAX_OPERAND_SIZE];
     int operand_count;
     int line_number;
+    uint32_t address;
 } Instruction;
 
 typedef struct
@@ -28,6 +30,12 @@ typedef struct
     uint32_t address;
 } DataEntry;
 
+typedef struct
+{
+    char name[MAX_LABEL_SIZE];
+    uint32_t address;
+} Symbol;
+
 typedef struct 
 {
     Instruction instructions[MAX_INSTRUCTIONS];
@@ -35,9 +43,14 @@ typedef struct
 
     DataEntry data[MAX_DATA];
     int data_count;
+
+    Symbol symbols[MAX_SYMBOLS];
+    int symbol_count;
 } AssemblyProgram;
 
 int read_asm_file(char *filename, AssemblyProgram *program);
 void print_program(AssemblyProgram *program);
+
+int find_symbol(AssemblyProgram *program, const char *name, uint32_t *addr_out);
 
 #endif // ASSEMBLER_H

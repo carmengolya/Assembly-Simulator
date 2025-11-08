@@ -82,6 +82,41 @@ static int parse_operands(char *line, char dest_operands[MAX_OPERANDS][MAX_OPERA
     return count;
 }
 
+int find_symbol(AssemblyProgram *program, const char *name, uint32_t *addr_out)
+{
+    if(!program || !name) return -1;
+    for(int i = 0; i < program->symbol_count; ++i)
+    {
+        if(strcmp(program->symbols[i].name, name) == 0)
+        {
+            if(addr_out) *addr_out = program->symbols[i].address;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+static void build_symbol_table(AssemblyProgram *program)
+{
+    program->symbol_count = 0;
+    for(int i = 0; i < program->instruction_count; ++i)
+    {
+        Instruction *instr = &program->instructions[i];
+        if(instr->label[0] != '\0')
+        {
+            if(program->symbol_count >= MAX_SYMBOLS)
+            {
+                printf("[WARN] symbol capacity exceeded\n");
+                break;
+            }
+            Symbol s = {0};
+            strncpy(s.name, instr->label, MAX_LABEL_SIZE - 1);
+            s.address = instr->address;
+            program->symbols[program->symbol_count++] = s;
+        }
+    }
+}
+
 int read_asm_file(char *filename, AssemblyProgram *program)
 {
     FILE *f = NULL;
@@ -254,6 +289,12 @@ int read_asm_file(char *filename, AssemblyProgram *program)
 
         line_ptr = newline ? newline + 1 : NULL;
     }
+
+    for(int i = 0; i < program->instruction_count; ++i)
+    {
+        program->instructions[i].address = (uint32_t)(i * 4);
+    }
+    build_symbol_table(program);
 
     free(buffer);
     return 0;
