@@ -4,22 +4,15 @@
 
 1. [Project Overview](#project-overview)
 2. [Architecture](#architecture)
-3. [Header Files](#header-files)
-   - [instruction.h](#instructionh)
-   - [cpu.h](#cpuh)
-   - [alu.h](#aluh)
-   - [memory.h](#memoryh)
-   - [assembler.h](#assemblerh)
-   - [encoder.h](#encoderh)
-   - [decoder.h](#decoderh)
-4. [Source Files](#source-files)
-   - [main.c](#mainc)
-   - [cpu.c](#cpuc)
-   - [alu.c](#aluc)
-   - [memory.c](#memoryc)
-   - [assembler.c](#assemblerc)
-   - [encoder.c](#encoderc)
-   - [decoder.c](#decoderc)
+3. [Core Modules](#core-modules)
+   - [Instruction Module](#instruction-module)
+   - [CPU Module](#cpu-module)
+   - [ALU Module](#alu-module)
+   - [Memory Module](#memory-module)
+   - [Assembler Module](#assembler-module)
+   - [Encoder Module](#encoder-module)
+   - [Decoder Module](#decoder-module)
+4. [Main Entry Point](#main-entry-point)
 5. [Build System](#build-system)
    - [CMakeLists.txt](#cmakeliststxt)
    - [makefile](#makefile)
@@ -59,13 +52,16 @@ Assembly File (.asm) → Parser → Symbol Table → Encoder → Memory → CPU 
 
 ---
 
-## Header Files
+## Core Modules
 
-### instruction.h
+### Instruction Module
+
+**Files:** `include/instruction.h`
 
 **Purpose:** Defines RISC-V instruction formats and provides inline functions for encoding/decoding instruction fields.
 
-**Key Points:**
+**Key Components:**
+
 - **Instruction Formats Supported:**
   - **R-Type**: Register-register operations (ADD, SUB, AND, OR, XOR, shifts)
   - **I-Type**: Immediate operations and loads (ADDI, LW, JALR)
@@ -88,44 +84,61 @@ Assembly File (.asm) → Parser → Symbol Table → Encoder → Memory → CPU 
 
 ---
 
-### cpu.h
+### CPU Module
 
-**Purpose:** Defines the CPU structure and its interface for fetching, decoding, and executing instructions.
+**Files:** `include/cpu.h`, `src/cpu.c`
 
-**Key Points:**
-- **CPU Structure:**
+**Purpose:** Implements the CPU emulation including fetch-decode-execute cycle.
+
+**Key Components:**
+
+- **CPU Structure (cpu.h):**
   - 32 general-purpose registers (`regs[32]`), where `x0` (zero) is hardwired to 0
   - Program counter (`pc`) for tracking current instruction address
   - Pointers to memory and assembly program for runtime access
   - Execution statistics (instructions executed, halted flag, error flag)
 
-- **Core Functions:**
+- **Main Functions:**
   - `cpu_init()`: Initialize CPU with zeroed registers and reset state
   - `cpu_init_with_program()`: Initialize CPU with memory and program references
   - `cpu_set_reg()` / `cpu_get_reg()`: Register access with x0 protection
 
-- **Execution Pipeline:**
+- **Execution Pipeline (cpu.c):**
   - `cpu_fetch()`: Fetch instruction from memory at current PC
   - `cpu_decode()`: Decode instruction format and extract fields
   - `cpu_execute()`: Execute the instruction and update CPU state
+    - R-Type: ALU operations (ADD, SUB, AND, OR, XOR, shifts)
+    - I-Type: Immediate ALU ops and loads (ADDI, LW, JALR)
+    - S-Type: Store operations (SW)
+    - U-Type: Upper immediate (LUI, AUIPC)
+    - B-Type: Conditional branches (BEQ, BNE, BLT, BGE, BLTU, BGEU)
+    - J-Type: Jumps (JAL)
   - `cpu_writeback()`: Write results back to destination register
 
 - **Control Flow:**
   - `cpu_step()`: Execute one instruction (fetch → decode → execute)
-  - `cpu_run()`: Execute program until halt or error condition
+  - `cpu_run()`: Loop that executes until program halts or error occurs
+  - PC auto-increment by 4 (word-aligned) or branch target update
+
+- **Special Instructions:**
+  - Pseudo-halt: `addi x0, x0, 0` (NOP that sets halt flag)
+  - Link register: Saves return address (PC+4) for JAL/JALR
 
 - **Debugging:**
-  - `cpu_print_registers()`: Display all register values
-  - `cpu_print_state()`: Display comprehensive CPU state
+  - `cpu_print_registers()`: Shows all 32 registers in hex and decimal
+  - `cpu_print_state()`: Shows PC, execution count, and halt/error flags
 
 ---
 
-### alu.h
+### ALU Module
 
-**Purpose:** Defines the Arithmetic Logic Unit operations supported by the simulator.
+**Files:** `include/alu.h`, `src/alu.c`
 
-**Key Points:**
-- **ALU Operations:**
+**Purpose:** Implements the Arithmetic Logic Unit operations.
+
+**Key Components:**
+
+- **ALU Operations (alu.h):**
   - `ALU_ADD`: Addition (signed/unsigned)
   - `ALU_SUB`: Subtraction (signed/unsigned)
   - `ALU_XOR`: Bitwise exclusive OR
@@ -135,24 +148,38 @@ Assembly File (.asm) → Parser → Symbol Table → Encoder → Memory → CPU 
   - `ALU_SRL`: Logical shift right (zero-fill)
   - `ALU_SRA`: Arithmetic shift right (sign-extend)
 
-- **Function:**
-  - `alu_execute()`: Performs the specified operation on two 32-bit operands
-  - Returns 32-bit result
-  - Handles shift operations with proper masking (only lower 5 bits used)
+- **Implementation (alu.c):**
+  - `alu_execute()`: Switch statement that performs the requested operation
+  - All operations work on 32-bit signed integers (`int32_t`)
+
+- **Operations Details:**
+  - **ADD/SUB**: Standard integer arithmetic (wraps on overflow per RISC-V spec)
+  - **XOR/OR/AND**: Bitwise logical operations
+  - **SLL**: Logical left shift (fills with zeros)
+  - **SRL**: Logical right shift (fills with zeros)
+  - **SRA**: Arithmetic right shift (sign-extends)
+
+- **Shift Operations:**
+  - Mask shift amount with 0x1F (use only lower 5 bits)
+  - Ensures shift amount is 0-31 per RISC-V specification
+  - SLL/SRL cast to unsigned for proper behavior
 
 - **Design Philosophy:**
-  - Pure function with no side effects
-  - Supports both signed and unsigned arithmetic through casting
-  - Used by CPU during execution of arithmetic/logical instructions
+  - Pure function with no state or side effects
+  - Easy to test and verify
+  - Reusable for both R-Type and I-Type instructions
 
 ---
 
-### memory.h
+### Memory Module
 
-**Purpose:** Defines the simulated memory system with byte-addressable storage.
+**Files:** `include/memory.h`, `src/memory.c`
 
-**Key Points:**
-- **Memory Structure:**
+**Purpose:** Implements the simulated memory system with byte-addressable storage.
+
+**Key Components:**
+
+- **Memory Structure (memory.h):**
   - Dynamic byte array (`uint8_t *data`)
   - Size tracking for bounds checking
   - Little-endian byte ordering
@@ -161,28 +188,42 @@ Assembly File (.asm) → Parser → Symbol Table → Encoder → Memory → CPU 
   - `memory_init()`: Allocate and zero-initialize memory of specified size
   - `memory_free()`: Deallocate memory and reset structure
 
-- **Memory Access:**
-  - `memory_read32()`: Read 32-bit word from memory (little-endian)
-  - `memory_write32()`: Write 32-bit word to memory (little-endian)
+- **Memory Access (memory.c):**
+  - `memory_read32()`: Read 32-bit word from memory (little-endian), assembles 4 bytes
+  - `memory_write32()`: Write 32-bit word to memory (little-endian), splits into 4 bytes
   - Bounds checking on all accesses to prevent buffer overruns
 
 - **Program Loading:**
   - `load_program_into_memory()`: Load encoded instructions into memory at base address
   - `load_data_into_memory()`: Load data section values into memory after instructions
+  - Data section typically placed after instruction section
+
+- **Memory Model:**
+  - Byte-addressable (smallest unit is 1 byte)
+  - Little-endian byte ordering (LSB at lowest address)
+  - Dynamic allocation based on program needs
 
 - **Debugging:**
   - `memory_dump_words()`: Display memory contents as 32-bit words in hex format
+  - Shows address and value for each word
+  - Automatically limits output to available memory
 
-- **Safety:** All operations include bounds checking and error reporting
+- **Safety:**
+  - All functions validate pointers and bounds
+  - Error messages printed for out-of-bounds access
+  - Prevents buffer overruns and segmentation faults
 
 ---
 
-### assembler.h
+### Assembler Module
 
-**Purpose:** Defines structures and functions for parsing RISC-V assembly files.
+**Files:** `include/assembler.h`, `src/assembler.c`
 
-**Key Points:**
-- **Data Structures:**
+**Purpose:** Parses RISC-V assembly files and builds internal representation.
+
+**Key Components:**
+
+- **Data Structures (assembler.h):**
   - `Instruction`: Represents a parsed assembly instruction with label, opcode, operands, line number, and address
   - `DataEntry`: Represents a data directive with label, value, and address
   - `Symbol`: Represents a label with its resolved memory address
@@ -193,77 +234,160 @@ Assembly File (.asm) → Parser → Symbol Table → Encoder → Memory → CPU 
   - Program limits: 1024 instructions, 1024 data entries, 1024 symbols
   - Maximum line size: 1024 characters
 
-- **Core Functions:**
+- **Main Functions:**
   - `read_asm_file()`: Parse assembly file and populate AssemblyProgram structure
   - `print_program()`: Display parsed program for debugging
   - `find_symbol()`: Look up address of a label/symbol
 
-- **Two-Pass Assembly:**
-  - First pass: Parse instructions and build symbol table
-  - Second pass: Resolve labels to addresses for branches/jumps
+- **Parsing Process (assembler.c):**
+  - Reads assembly file line by line
+  - Strips comments (// and # style, also /* */ block comments)
+  - Removes whitespace
+  - Identifies labels, opcodes, and operands
+  - Builds symbol table with label addresses
+
+- **Helper Functions:**
+  - `eliminate_comment()`: Removes line comments (// and #)
+  - `eliminate_block_comments()`: Removes /* ... */ block comments
+  - `parse_operands()`: Splits operand string by commas and trims whitespace
+  - `build_symbol_table()`: First pass to collect all labels and assign addresses
+
+- **Data Section:**
+  - Supports `.word` directive for initialized data
+  - Parses label, value, and assigns offset address
+  - Data can be referenced by labels in instructions
+
+- **Two-Pass Design:**
+  - **Pass 1**: Collect labels and build symbol table
+  - **Pass 2**: Parse instructions with known label addresses
+
+- **Error Handling:**
+  - Returns negative values on parse errors
+  - Includes line numbers in error messages
+  - Validates file exists and can be opened
 
 ---
 
-### encoder.h
+### Encoder Module
+
+**Files:** `include/encoder.h`, `src/encoder.c`
 
 **Purpose:** Converts parsed assembly instructions into 32-bit RISC-V machine code.
 
-**Key Points:**
-- **Main Function:**
+**Key Components:**
+
+- **Main Function (encoder.h):**
   - `encode_instruction()`: Takes an `Instruction` and `AssemblyProgram` (for symbol lookup) and returns 32-bit encoded value
-  
+
+- **Builder Helper Functions (encoder.c):**
+  - `build_rtype()`: Constructs R-Type instruction from fields (funct7, rs2, rs1, funct3, rd, opcode)
+  - `build_itype()`: Constructs I-Type instruction with 12-bit immediate
+  - `build_stype()`: Constructs S-Type instruction with split immediate (imm[11:5] and imm[4:0])
+  - `build_utype()`: Constructs U-Type instruction with 20-bit immediate
+  - `build_btype()`: Constructs B-Type instruction with complex immediate encoding
+
 - **Encoding Process:**
-  - Identifies instruction type (R, I, S, U, B)
-  - Parses register names (x0-x31 or aliases like sp, ra, a0, etc.)
-  - Parses immediate values (decimal, hex, or labels)
-  - Resolves labels to PC-relative offsets for branches
-  - Constructs 32-bit instruction according to RISC-V format
-  
-- **Validation:**
-  - Checks immediate value ranges (12-bit for I-Type, 20-bit for U-Type, etc.)
-  - Validates register indices
-  - Ensures branch offsets are word-aligned
-  
+  - Identifies instruction mnemonic (ADD, LW, BEQ, etc.)
+  - Maps to appropriate encoding function
+  - Parses registers using `reg_index()` from decoder
+  - Parses immediates as decimal, hex, or label references
+
+- **Label Resolution:**
+  - `parse_branch_imm_or_label()`: Resolves labels to PC-relative offsets
+  - Computes offset = target_address - current_address
+  - Validates offset fits in instruction's immediate field
+  - Ensures branch offsets are even (word-aligned)
+
+- **Validation Helpers:**
+  - `fits_imm12()`: Checks if value fits in 12-bit signed immediate (-2048 to 2047)
+  - `fits_imm20()`: Checks if value fits in 20-bit signed immediate
+  - `fits_branch_offset()`: Validates branch offset range and alignment
+
+- **Supported Instructions:**
+  - **R-Type**: ADD, SUB, AND, OR, XOR, SLL, SRL, SRA
+  - **I-Type**: ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, LW, JALR
+  - **S-Type**: SW
+  - **U-Type**: LUI, AUIPC
+  - **B-Type**: BEQ, BNE, BLT, BGE, BLTU, BGEU
+  - **J-Type**: JAL
+
+- **Pseudo-Instructions:**
+  - `LI` (load immediate): Expanded to ADDI or LUI+ADDI depending on value
+  - `MV` (move): Encoded as ADDI with 0 immediate
+  - `NOP`: Encoded as ADDI x0, x0, 0
+
 - **Error Handling:**
   - Returns 0 on encoding failure
-  - Prints detailed error messages with line numbers
+  - Detailed error messages with line numbers
+  - Validates all register indices and immediate ranges
 
 ---
 
-### decoder.h
+### Decoder Module
+
+**Files:** `include/decoder.h`, `src/decoder.c`
 
 **Purpose:** Provides utility functions for parsing assembly operands and register names.
 
-**Key Points:**
-- **Register Parsing:**
+**Key Components:**
+
+- **Main Functions (decoder.h):**
   - `reg_index()`: Converts register name to index (0-31)
+  - `parse_immediate()`: Parses immediate values from strings
+  - `parse_memory_operand()`: Parses "offset(register)" format for load/store instructions
+
+- **Register Parsing (decoder.c):**
   - Supports numeric format (x0-x31)
-  - Supports ABI names (zero, ra, sp, gp, tp, t0-t6, s0-s11, a0-a7)
+  - Supports ABI names (zero, ra, sp, gp, tp, t0-t6, s0-s11, a0-a7, fp)
   - Case-insensitive matching
-  
+  - Validates register numbers are in range 0-31
+
+- **Register Aliases:**
+  - Complete RISC-V ABI name mapping:
+    - x0 = zero (hardwired to 0)
+    - x1 = ra (return address)
+    - x2 = sp (stack pointer)
+    - x3 = gp (global pointer)
+    - x4 = tp (thread pointer)
+    - x5-x7 = t0-t2 (temporaries)
+    - x8-x9 = s0-s1, fp (saved registers, frame pointer)
+    - x10-x17 = a0-a7 (function arguments/return values)
+    - x18-x27 = s2-s11 (saved registers)
+    - x28-x31 = t3-t6 (temporaries)
+
 - **Immediate Parsing:**
-  - `parse_immediate()`: Parses decimal, hexadecimal (0x), or octal (0) immediate values
-  - Supports optional '#' prefix
-  - Returns signed 32-bit integer
-  
+  - Converts string to 32-bit signed integer
+  - Supports multiple formats:
+    - Decimal: 42, -10
+    - Hexadecimal: 0x2A, 0xFF
+    - Octal: 077
+  - Optional '#' prefix for ARM-style syntax compatibility
+
 - **Memory Operand Parsing:**
-  - `parse_memory_operand()`: Parses format like `offset(register)` for load/store instructions
+  - Parses "offset(register)" format used for load/store instructions
+  - Examples: `0(sp)`, `4(a0)`, `-8(s0)`
   - Extracts offset value and base register index
-  - Example: `4(sp)` → offset=4, reg=2 (sp is x2)
-  
+  - Validates parentheses and register name
+
+- **Helper Functions:**
+  - `trim_inplace()`: Removes leading/trailing whitespace
+  - `to_lower_inplace()`: Converts string to lowercase for case-insensitive comparison
+
 - **Error Handling:**
-  - Returns -1 for invalid inputs
-  - Provides descriptive error messages
+  - Returns -1 for invalid register names
+  - Returns -1 for malformed memory operands
+  - Prints descriptive error messages
 
 ---
 
-## Source Files
+## Main Entry Point
 
 ### main.c
 
 **Purpose:** Entry point for the simulator - orchestrates the complete simulation pipeline.
 
-**Key Points:**
+**Key Components:**
+
 - **Execution Pipeline (8 Steps):**
   1. **Parse Assembly File**: Read .asm file and build program structure
   2. **Initialize Memory**: Allocate simulated memory (400 bytes default)
@@ -291,262 +415,6 @@ Assembly File (.asm) → Parser → Symbol Table → Encoder → Memory → CPU 
 - **Memory Management:**
   - Properly frees all allocated resources
   - Memory cleanup on both success and error paths
-
----
-
-### cpu.c
-
-**Purpose:** Implements the CPU emulation including fetch-decode-execute cycle.
-
-**Key Points:**
-- **Initialization:**
-  - `cpu_init()`: Clears all registers (x0 hardwired to 0), resets PC, and clears flags
-  - `cpu_init_with_program()`: Associates CPU with memory and program for execution
-
-- **Register Management:**
-  - `cpu_set_reg()`: Writes to register with x0 protection (writes to x0 are ignored)
-  - `cpu_get_reg()`: Reads register value with bounds checking
-
-- **Fetch-Decode-Execute:**
-  - `cpu_fetch()`: Reads 32-bit instruction from memory at PC address
-  - `cpu_decode()`: Extracts opcode and determines instruction format
-  - `cpu_execute()`: Performs instruction operation based on type
-    - R-Type: ALU operations (ADD, SUB, AND, OR, XOR, shifts)
-    - I-Type: Immediate ALU ops and loads (ADDI, LW, JALR)
-    - S-Type: Store operations (SW)
-    - U-Type: Upper immediate (LUI, AUIPC)
-    - B-Type: Conditional branches (BEQ, BNE, BLT, BGE, BLTU, BGEU)
-    - J-Type: Jumps (JAL)
-
-- **Control Flow:**
-  - `cpu_step()`: Executes one instruction cycle (fetch → decode → execute)
-  - `cpu_run()`: Loop that calls cpu_step() until program halts or error occurs
-  - PC auto-increment by 4 (word-aligned) or branch target update
-
-- **Special Instructions:**
-  - Pseudo-halt: `addi x0, x0, 0` (NOP that sets halt flag)
-  - Link register: Saves return address (PC+4) for JAL/JALR
-
-- **Debugging:**
-  - `cpu_print_registers()`: Shows all 32 registers in hex and decimal
-  - `cpu_print_state()`: Shows PC, execution count, and halt/error flags
-
----
-
-### alu.c
-
-**Purpose:** Implements the Arithmetic Logic Unit operations.
-
-**Key Points:**
-- **Implementation:**
-  - `alu_execute()`: Switch statement that performs the requested operation
-  - All operations work on 32-bit signed integers (`int32_t`)
-
-- **Operations Details:**
-  - **ADD/SUB**: Standard integer arithmetic (wraps on overflow per RISC-V spec)
-  - **XOR/OR/AND**: Bitwise logical operations
-  - **SLL**: Logical left shift (fills with zeros)
-  - **SRL**: Logical right shift (fills with zeros)
-  - **SRA**: Arithmetic right shift (sign-extends)
-
-- **Shift Operations:**
-  - Mask shift amount with 0x1F (use only lower 5 bits)
-  - Ensures shift amount is 0-31 per RISC-V specification
-  - SLL/SRL cast to unsigned for proper behavior
-
-- **Error Handling:**
-  - Returns 0 for unknown operations
-  - Prints error message for debugging
-
-- **Design:**
-  - Pure function with no state
-  - Easy to test and verify
-  - Reusable for both R-Type and I-Type instructions
-
----
-
-### memory.c
-
-**Purpose:** Implements the simulated memory system.
-
-**Key Points:**
-- **Memory Model:**
-  - Byte-addressable (smallest unit is 1 byte)
-  - Little-endian byte ordering (LSB at lowest address)
-  - Dynamic allocation based on program needs
-
-- **Initialization:**
-  - `memory_init()`: Allocates and zeros memory array
-  - Returns Memory structure with pointer and size
-  - Handles allocation failures gracefully
-
-- **Access Functions:**
-  - `memory_read32()`: Assembles 4 bytes into 32-bit word (little-endian)
-  - `memory_write32()`: Splits 32-bit word into 4 bytes (little-endian)
-  - Both functions check bounds before access
-
-- **Loading Functions:**
-  - `load_program_into_memory()`: Loads array of instructions starting at base address
-  - `load_data_into_memory()`: Loads data section entries at their specified offsets
-  - Data section typically placed after instruction section
-
-- **Debugging:**
-  - `memory_dump_words()`: Prints memory contents in hex format
-  - Shows address and value for each 32-bit word
-  - Automatically limits output to available memory
-
-- **Safety:**
-  - All functions validate pointers and bounds
-  - Error messages printed for out-of-bounds access
-  - Prevents buffer overruns and segmentation faults
-
----
-
-### assembler.c
-
-**Purpose:** Parses RISC-V assembly files and builds internal representation.
-
-**Key Points:**
-- **Parsing Process:**
-  - Reads assembly file line by line
-  - Strips comments (// and # style)
-  - Removes whitespace
-  - Identifies labels, opcodes, and operands
-  - Builds symbol table with label addresses
-
-- **Comment Handling:**
-  - `eliminate_comment()`: Removes line comments (// and #)
-  - `eliminate_block_comments()`: Removes /* ... */ block comments
-  - Allows both C-style and assembly-style comments
-
-- **Operand Parsing:**
-  - `parse_operands()`: Splits operand string by commas
-  - Trims whitespace from each operand
-  - Stores up to 3 operands per instruction
-
-- **Symbol Table:**
-  - `build_symbol_table()`: First pass to collect all labels
-  - Assigns addresses based on instruction position (word-aligned)
-  - `find_symbol()`: Looks up label address for branch/jump resolution
-
-- **Data Section:**
-  - Supports `.word` directive for initialized data
-  - Parses label, value, and assigns offset address
-  - Data can be referenced by labels in instructions
-
-- **Two-Pass Design:**
-  - **Pass 1**: Collect labels and build symbol table
-  - **Pass 2**: Parse instructions with known label addresses
-
-- **Error Handling:**
-  - Returns negative values on parse errors
-  - Includes line numbers in error messages
-  - Validates file exists and can be opened
-
-- **Output:**
-  - `print_program()`: Debug function to display parsed program
-  - Shows all instructions with labels, opcodes, and operands
-
----
-
-### encoder.c
-
-**Purpose:** Converts parsed assembly instructions into 32-bit RISC-V machine code.
-
-**Key Points:**
-- **Builder Functions:**
-  - `build_rtype()`: Constructs R-Type instruction from fields (funct7, rs2, rs1, funct3, rd, opcode)
-  - `build_itype()`: Constructs I-Type instruction with 12-bit immediate
-  - `build_stype()`: Constructs S-Type instruction with split immediate (imm[11:5] and imm[4:0])
-  - `build_utype()`: Constructs U-Type instruction with 20-bit immediate
-  - `build_btype()`: Constructs B-Type instruction with complex immediate encoding
-
-- **Instruction Encoding:**
-  - Identifies instruction mnemonic (ADD, LW, BEQ, etc.)
-  - Maps to appropriate encoding function
-  - Parses registers using `reg_index()` from decoder
-  - Parses immediates as decimal, hex, or label references
-
-- **Label Resolution:**
-  - `parse_branch_imm_or_label()`: Resolves labels to PC-relative offsets
-  - Computes offset = target_address - current_address
-  - Validates offset fits in instruction's immediate field
-  - Ensures branch offsets are even (word-aligned)
-
-- **Validation:**
-  - `fits_imm12()`: Checks if value fits in 12-bit signed immediate (-2048 to 2047)
-  - `fits_imm20()`: Checks if value fits in 20-bit signed immediate
-  - `fits_branch_offset()`: Validates branch offset range and alignment
-
-- **Supported Instructions:**
-  - **R-Type**: ADD, SUB, AND, OR, XOR, SLL, SRL, SRA
-  - **I-Type**: ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, LW, JALR
-  - **S-Type**: SW
-  - **U-Type**: LUI, AUIPC
-  - **B-Type**: BEQ, BNE, BLT, BGE, BLTU, BGEU
-  - **J-Type**: JAL
-
-- **Pseudo-Instructions:**
-  - `LI` (load immediate): Expanded to ADDI or LUI+ADDI depending on value
-  - `MV` (move): Encoded as ADDI with 0 immediate
-  - `NOP`: Encoded as ADDI x0, x0, 0
-
-- **Error Handling:**
-  - Returns 0 on encoding failure
-  - Detailed error messages with line numbers
-  - Validates all register indices and immediate ranges
-
----
-
-### decoder.c
-
-**Purpose:** Utility functions for parsing assembly syntax elements.
-
-**Key Points:**
-- **Register Name Resolution:**
-  - `reg_index()`: Maps register name to index (0-31)
-  - Supports two naming conventions:
-    - **Numeric**: x0, x1, ..., x31
-    - **ABI Names**: zero, ra, sp, gp, tp, t0-t6, s0-s11, a0-a7, fp
-  - Case-insensitive matching
-  - Validates register numbers are in range 0-31
-
-- **Register Aliases:**
-  - Complete RISC-V ABI name mapping:
-    - x0 = zero (hardwired to 0)
-    - x1 = ra (return address)
-    - x2 = sp (stack pointer)
-    - x3 = gp (global pointer)
-    - x4 = tp (thread pointer)
-    - x5-x7 = t0-t2 (temporaries)
-    - x8-x9 = s0-s1, fp (saved registers, frame pointer)
-    - x10-x17 = a0-a7 (function arguments/return values)
-    - x18-x27 = s2-s11 (saved registers)
-    - x28-x31 = t3-t6 (temporaries)
-
-- **Immediate Parsing:**
-  - `parse_immediate()`: Converts string to 32-bit signed integer
-  - Supports multiple formats:
-    - Decimal: 42, -10
-    - Hexadecimal: 0x2A, 0xFF
-    - Octal: 077
-  - Optional '#' prefix for ARM-style syntax compatibility
-
-- **Memory Operand Parsing:**
-  - `parse_memory_operand()`: Parses "offset(register)" format
-  - Used for load/store instructions (LW, SW, etc.)
-  - Examples: `0(sp)`, `4(a0)`, `-8(s0)`
-  - Extracts offset value and base register index
-  - Validates parentheses and register name
-
-- **Helper Functions:**
-  - `trim_inplace()`: Removes leading/trailing whitespace
-  - `to_lower_inplace()`: Converts string to lowercase for case-insensitive comparison
-
-- **Error Handling:**
-  - Returns -1 for invalid register names
-  - Returns -1 for malformed memory operands
-  - Prints descriptive error messages
 
 ---
 
@@ -690,21 +558,21 @@ Assembly-Simulator/
     ├── CMakeLists.txt                 # CMake build configuration
     ├── makefile                       # High-level build and test automation
     ├── main.c                         # Simulator entry point and execution pipeline
-    ├── include/                       # Header files directory
-    │   ├── instruction.h              # RISC-V instruction format definitions
-    │   ├── cpu.h                      # CPU structure and interface
-    │   ├── alu.h                      # ALU operations definitions
-    │   ├── memory.h                   # Memory system interface
-    │   ├── assembler.h                # Assembly parser structures
-    │   ├── encoder.h                  # Instruction encoder interface
-    │   └── decoder.h                  # Operand decoder utilities
-    ├── src/                           # Source files directory
-    │   ├── cpu.c                      # CPU implementation (fetch-decode-execute)
-    │   ├── alu.c                      # ALU operations implementation
-    │   ├── memory.c                   # Memory system implementation
-    │   ├── assembler.c                # Assembly file parser
-    │   ├── encoder.c                  # Instruction encoder implementation
-    │   └── decoder.c                  # Operand decoder implementation
+    ├── include/                       # Header files (module interfaces)
+    │   ├── instruction.h              # Instruction module - RISC-V formats
+    │   ├── cpu.h                      # CPU module - interface
+    │   ├── alu.h                      # ALU module - interface
+    │   ├── memory.h                   # Memory module - interface
+    │   ├── assembler.h                # Assembler module - interface
+    │   ├── encoder.h                  # Encoder module - interface
+    │   └── decoder.h                  # Decoder module - interface
+    ├── src/                           # Source files (module implementations)
+    │   ├── cpu.c                      # CPU module - implementation
+    │   ├── alu.c                      # ALU module - implementation
+    │   ├── memory.c                   # Memory module - implementation
+    │   ├── assembler.c                # Assembler module - implementation
+    │   ├── encoder.c                  # Encoder module - implementation
+    │   └── decoder.c                  # Decoder module - implementation
     └── tests/                         # Test assembly programs
         ├── add_sub.asm
         ├── btype_bne_taken.asm
@@ -717,10 +585,13 @@ Assembly-Simulator/
         └── results/                   # Test output logs (generated)
 ```
 
+**Module Organization:**
+Each module consists of a header file (`.h`) defining the interface and a source file (`.c`) containing the implementation and helper functions. The header files are in `include/` and source files are in `src/`.
+
 ---
 
 **Documentation Version:** 1.0  
-**Last Updated:** 2025-11-08  
+**Last Updated:** 2025-11-09  
 **Project:** RISC-V Assembly Simulator  
 **Language:** C (C99 Standard)  
 **Build System:** CMake 3.10+ with Make wrapper
