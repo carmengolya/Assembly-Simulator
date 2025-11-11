@@ -1,4 +1,4 @@
-# Assembly-Simulator
+## Assembly-Simulator
 
 # Project Overview
 
