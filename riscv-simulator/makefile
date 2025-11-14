@@ -6,62 +6,45 @@ TEST_DIR       := tests
 RESULTS_DIR    := $(TEST_DIR)/results
 TEST_EXT       := asm
 
-# Auto-discover test files (only top-level .asm in tests/)
 TESTS          := $(wildcard $(TEST_DIR)/*.$(TEST_EXT))
 TEST_BASENAMES := $(notdir $(TESTS))
 LOG_FILES      := $(patsubst %.$(TEST_EXT),$(RESULTS_DIR)/%_out.log,$(TEST_BASENAMES))
 
-# Build type (use: make BUILD_TYPE=Release)
 BUILD_TYPE ?= Release
 
-# CMake generator options (leave empty for default)
 CMAKE_ARGS ?= -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
 
-# --------------- Phony targets ----------------
 .PHONY: all sim configure build test run clean distclean rebuild list-tests logs help
 
-# Default target: build simulator
 all: sim
 
-# Explicit build target (alias)
 sim: $(SIM)
 
-# Configure step (only runs if build dir missing or no cache)
 configure:
 	@mkdir -p $(BUILD_DIR)
 	@cd $(BUILD_DIR) && cmake $(CMAKE_ARGS) ..
 
-# Build the simulator (depends on configure)
 $(SIM): configure
 	@echo "[BUILD] Building $(TARGET_NAME) in $(BUILD_DIR) (type=$(BUILD_TYPE))"
 	@cmake --build $(BUILD_DIR) --config $(BUILD_TYPE) --target $(TARGET_NAME)
 	@echo "[OK] Built: $(SIM)"
 
-# --------------- Test execution ----------------
-
-# Ensure results dir exists
 $(RESULTS_DIR):
 	@mkdir -p $(RESULTS_DIR)
 	@touch $(RESULTS_DIR)/.gitkeep
 
-# Pattern rule to generate a log for each test:
-# Input: tests/<name>.asm
-# Output: tests/results/<name>_out.log
 $(RESULTS_DIR)/%_out.log: $(TEST_DIR)/%.$(TEST_EXT) $(SIM) | $(RESULTS_DIR)
 	@echo "[TEST] Running $<"
 	@$(SIM) $< > $@ 2>&1 && \
 	  echo "[PASS] $< -> $(notdir $@)" || \
 	  echo "[FAIL] $< (see $(notdir $@))"
 
-# Build all logs (but does not summarize)
 logs: $(LOG_FILES)
 
-# List discovered tests
 list-tests:
 	@echo "Discovered $(words $(TESTS)) test(s):"
 	@$(foreach t,$(TESTS),echo " - $(t)";)
 
-# Run all tests (sequential) and summary at end
 test: sim
 	@echo "[INFO] Running all tests..."
 	@echo "[INFO] Simulator: $(SIM)"
@@ -94,7 +77,6 @@ test: sim
 	  echo "[RESULT] All tests passed."; \
 	fi
 
-# Run a single test: make run TEST=<file.asm>
 run: sim
 	@if [ -z "$(TEST)" ]; then \
 	  echo "Usage: make run TEST=<file.asm>"; \
@@ -117,7 +99,6 @@ run: sim
 	fi
 	@echo "[VIEW] tail $(RESULTS_DIR)/$${base}_out.log"
 
-# --------------- Housekeeping ----------------
 clean:
 	@echo "[CLEAN] Removing simulator target files (but keeping CMake cache)"
 	@if [ -d "$(BUILD_DIR)" ]; then \
@@ -132,7 +113,6 @@ distclean:
 
 rebuild: distclean all
 
-# --------------- Help ----------------
 help:
 	@echo "Available targets:"
 	@echo "  make / make all      - Configure & build simulator"

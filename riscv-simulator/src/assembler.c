@@ -151,6 +151,9 @@ int read_asm_file(char *filename, AssemblyProgram *program)
 
     program->instruction_count = 0;
     program->data_count = 0;
+    program->symbol_count = 0;
+
+    char pending_label[MAX_LABEL_SIZE] = {0};
 
     char *line_ptr = buffer;
     char line[MAX_LINE_SIZE];
@@ -253,12 +256,33 @@ int read_asm_file(char *filename, AssemblyProgram *program)
             // step 3: parse the command through this syntax -> [ label: ] [opcode [operands]] 
             // step 3.1: [label]
             char *colon = strchr(line, ':');
+            char label_buf[MAX_LABEL_SIZE] = {0};
+
             if(colon)
             {
                 *colon = '\0';
-                strncpy(instr.label, line, MAX_LABEL_SIZE - 1);
+                strncpy(label_buf, line, MAX_LABEL_SIZE - 1);
+                label_buf[MAX_LABEL_SIZE - 1] = '\0';
+                
                 memmove(line, colon + 1, strlen(colon + 1) + 1);
                 eliminate_whitespaces(line);
+
+                if(strlen(line) == 0)
+                {
+                    strncpy(pending_label, label_buf, MAX_LABEL_SIZE - 1);
+                    pending_label[MAX_LABEL_SIZE - 1] = '\0';
+                    line_ptr = newline ? newline + 1 : NULL;
+                    continue;
+                }
+
+                strncpy(instr.label, label_buf, MAX_LABEL_SIZE - 1);
+                instr.label[MAX_LABEL_SIZE - 1] = '\0';
+            }
+            else if(pending_label[0] != '\0')
+            {
+                strncpy(instr.label, pending_label, MAX_LABEL_SIZE - 1);
+                instr.label[MAX_LABEL_SIZE - 1] = '\0';
+                pending_label[0] = '\0';
             }
 
             // step 3.2: [opcode]

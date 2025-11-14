@@ -208,6 +208,21 @@ static int cpu_decode_btype(CPU *cpu, EncodedInstruction enc)
     return 0;
 }
 
+static int cpu_decode_jtype(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu_decode_jtype: CPU is NULL\n");
+        return -1;
+    }
+
+    uint8_t rd = rtype_get_rd(enc.value);
+    int32_t imm = jtype_get_immediate(enc.value);
+
+    printf("[DECODE] J-Type: rd=%u, imm=%d\n", rd, imm);
+    return 0;
+}
+
 int cpu_decode(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
@@ -225,6 +240,7 @@ int cpu_decode(CPU *cpu, EncodedInstruction enc)
 
         case 0x03:
         case 0x13:
+        case 0x67:
             return cpu_decode_itype(cpu, enc);
 
         case 0x23:
@@ -236,6 +252,9 @@ int cpu_decode(CPU *cpu, EncodedInstruction enc)
 
         case 0x63:
             return cpu_decode_btype(cpu, enc);
+
+        case 0x6F:
+            return cpu_decode_jtype(cpu, enc);
 
         default:
             {
@@ -412,6 +431,30 @@ static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
             return -1;
         }
     }
+    else if(opcode == 0x67)
+    {
+        if(funct3 == 0x0)
+        {
+            uint32_t pc_before_inc = cpu->pc - 4;
+            int32_t base = cpu_get_reg(cpu, rs1);
+            uint32_t target = (uint32_t)((base + imm) & ~1U);
+
+            cpu_writeback(cpu, rd, (int32_t)(pc_before_inc + 4));
+            cpu->pc = target;
+
+            printf("[EXEC] JALR x%d, x%d, imm=%d -> new PC=0x%08X (rs1=0x%08X)\n",
+                rd, rs1, imm, cpu->pc, (uint32_t)base);
+
+            return 0;
+        }
+        else
+        {
+            printf("[ERROR] cpu_execute_itype: unsupported I-type funct3=0x%X for opcode 0x67 at PC 0x%08X\n",
+                   funct3, cpu->pc - 4);
+            cpu->error = 1;
+            return -1;
+        }
+    }
 
     printf("[ERROR] cpu_execute_itype: unsupported I-type opcode 0x%02X at PC 0x%08X\n",
            opcode, cpu->pc);
@@ -540,6 +583,29 @@ static int cpu_execute_btype(CPU *cpu, EncodedInstruction enc)
     return 0;
 }
 
+static int cpu_execute_jtype(CPU *cpu, EncodedInstruction enc)
+{
+    if(!cpu)
+    {
+        printf("[ERROR] cpu_execute_jtype: CPU is null.\n");
+        return -1;
+    }
+
+    uint8_t rd = rtype_get_rd(enc.value);
+    int32_t imm = jtype_get_immediate(enc.value);
+
+    uint32_t pc_before_inc = cpu->pc - 4;
+
+    cpu_writeback(cpu, rd, (int32_t)(pc_before_inc + 4));
+
+    cpu->pc = pc_before_inc + imm;
+
+    printf("[EXEC] JAL x%d, imm=%d -> new PC=0x%08X (return=0x%08X)\n",
+           rd, imm, cpu->pc, (uint32_t)(pc_before_inc + 4));
+
+    return 0;
+}
+
 int cpu_execute(CPU *cpu, EncodedInstruction enc)
 {
     if(!cpu)
@@ -553,6 +619,7 @@ int cpu_execute(CPU *cpu, EncodedInstruction enc)
     {
         case 0x03:
         case 0x13:
+        case 0x67:
             return cpu_execute_itype(cpu, enc);
 
         case 0x23:  
@@ -567,6 +634,9 @@ int cpu_execute(CPU *cpu, EncodedInstruction enc)
 
         case 0x63:
             return cpu_execute_btype(cpu, enc);
+
+        case 0x6F:
+            return cpu_execute_jtype(cpu, enc);
 
         default:
         {

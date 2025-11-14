@@ -142,8 +142,8 @@ static inline int32_t stype_get_immediate(uint32_t instr)
     
     int32_t imm = (imm11_5 << 5) | imm4_0; 
     
-    if(imm & 0x800)  // if it's signed
-        imm |= 0xFFFFF000; // extend it with 1s
+    if(imm & 0x800)
+        imm |= 0xFFFFF000;
     
     return imm;
 }
@@ -200,7 +200,7 @@ typedef struct
  *  +----------+-----------+--------+--------+--------+----------+-------+-------+
  *  | imm[12]  | imm[10:5] |  rs2   |  rs1   | funct3 | imm[4:1] |imm[11]|opcode |
  *  +----------+-----------+--------+--------+--------+----------+-------+-------+
- *     1 bit      6 biți     5 biți   5 biți   3 biți    4 biți    1 bit   7 biți
+ *     1 bit      6 biti     5 biti   5 biti   3 biti    4 biti    1 bit   7 biti
  *
  */
 
@@ -251,12 +251,51 @@ typedef struct
     uint32_t value;
 } BTypeEncoding;
 
+/*
+* J-Type Instruction Format (RISC-V)
+*
+* Layout (32 biți):
+*
+* 31       30 29       22 21     20 19       12 11 7 6       0
+* +----------+-----------+---------+-----------+----+--------+
+* | imm[20]  | imm[10:1] | imm[11] | imm[19:12]| rd | opcode |
+* +----------+-----------+---------+-----------+----+--------+
+*    1 bit      10 biti     1 bit      8 biti  5 biti  7 biti
+*
+*/
+
+static inline uint8_t jtype_get_opcode(uint32_t instr)
+{
+    return instr & 0x7F;  // [6:0]
+}
+
+static inline int32_t jtype_get_immediate(uint32_t instr)
+{
+    int32_t imm20     = (instr >> 31) & 0x1;
+    int32_t imm10_1   = (instr >> 21) & 0x3FF;
+    int32_t imm11     = (instr >> 20) & 0x1;
+    int32_t imm19_12  = (instr >> 12) & 0xFF;
+
+    int32_t imm = (imm20 << 20) | (imm19_12 << 12) | (imm11 << 11) | (imm10_1 << 1);
+
+    if (imm & (1 << 20))
+        imm |= 0xFFF00000;
+
+    return imm;
+}
+
+typedef struct
+{
+    uint32_t value;
+} JTypeEncoding;
+
 typedef union 
 {
     RTypeEncoding rtype;
     ITypeEncoding itype;
     STypeEncoding stype;
     BTypeEncoding btype;
+    JTypeEncoding jtype;
     uint32_t value;
 } EncodedInstruction;
 

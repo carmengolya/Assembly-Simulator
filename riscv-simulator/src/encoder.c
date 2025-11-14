@@ -66,6 +66,33 @@ static inline uint32_t build_btype(int32_t imm, uint32_t rs1, uint32_t rs2, uint
            opcode;
 }
 
+static uint32_t build_jtype(uint32_t imm, uint32_t rd, uint32_t opcode)
+{
+    uint32_t imm20     = (imm >> 20) & 0x1;
+    uint32_t imm10_1   = (imm >> 1)  & 0x3FF;
+    uint32_t imm11     = (imm >> 11) & 0x1;
+    uint32_t imm19_12  = (imm >> 12) & 0xFF;
+
+    return (imm20 << 31) |
+           (imm10_1 << 21) |
+           (imm11 << 20) |
+           (imm19_12 << 12) |
+           ((rd & 0x1F) << 7) |
+           (opcode & 0x7F);
+}
+
+static int fits_imm21(int32_t imm)
+{
+    const int32_t min = -(1 << 20);
+    const int32_t max =  (1 << 20) - 1;
+    if (imm < min || imm > max)
+        return 0;
+    if (imm & 1)
+        return 0;
+    return 1;
+    
+}
+
 static int fits_imm12(int32_t imm) 
 {
     return (imm >= -2048 && imm <= 2047);
@@ -486,6 +513,143 @@ uint32_t encode_instruction(AssemblyProgram *program, Instruction *instr)
         uint32_t encoded = build_btype(offset, (uint32_t)rs1, (uint32_t)rs2, funct3);
         printf("[ENCODE] %s x%d, x%d, %s -> off=%d (PC=0x%08X) -> 0x%08X\n",
             instr->opcode, rs1, rs2, instr->operands[2], offset, instr->address, encoded);
+        return encoded;
+    }
+    else if(strcmp(instr->opcode, "jal") == 0)
+    {
+        if(instr->operand_count < 1)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'jal' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = 1;
+        const char *target_token = NULL;
+
+        if(instr->operand_count == 1)
+        {
+            target_token = instr->operands[0];
+        }
+        else
+        {
+            rd = reg_index(instr->operands[0]);
+            target_token = instr->operands[1];
+        }
+
+        if(rd < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid destination register for 'jal' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int32_t offset = 0;
+        uint32_t target_addr = 0;
+        int found = 0;
+
+        if(find_symbol(program, target_token, &target_addr) == 0)
+        {
+            found = 1;
+        }
+        else
+        {
+            for(int i = 0; i < program->instruction_count; ++i)
+            {
+                if(strlen(program->instructions[i].label) > 0 &&
+                   strcmp(program->instructions[i].label, target_token) == 0)
+                {
+                    target_addr = program->instructions[i].address;
+                    found = 1;
+                    break;
+                }
+            }
+
+            if(!found)
+            {
+                for(int i = 0; i < program->data_count; ++i)
+                {
+                    if(strlen(program->data[i].label) > 0 &&
+                       strcmp(program->data[i].label, target_token) == 0)
+                    {
+                        target_addr = program->data[i].address;
+                        found = 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(found)
+        {
+            offset = (int32_t)target_addr - (int32_t)instr->address;
+        }
+        else
+        {
+            offset = parse_immediate(target_token);
+        }
+
+        if(!fits_imm21(offset))
+        {
+            printf("[ERROR] encode_instruction: JAL immediate out of range (line %d, off=%d)\n",
+                   instr->line_number, offset);
+            return 0;
+        }
+
+        uint32_t encoded = build_jtype((uint32_t)offset, (uint32_t)rd, 0x6F);
+        printf("[ENCODE] JAL x%d, %s (off=%d) -> 0x%08X\n",
+               rd, target_token, offset, encoded);
+        return encoded;
+    }
+    else if(strcmp(instr->opcode, "jalr") == 0)
+    {
+        if(instr->operand_count < 2)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'jalr' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        if(rd < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid destination register for 'jalr' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rs1 = -1;
+        int32_t imm = 0;
+
+        if(parse_memory_operand(instr->operands[1], &imm, &rs1) < 0)
+        {
+            rs1 = reg_index(instr->operands[1]);
+            imm = 0;
+
+            if(instr->operand_count >= 3)
+            {
+                imm = parse_immediate(instr->operands[2]);
+            }
+        }
+
+        if(rs1 < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid base register for 'jalr' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        if(!fits_imm12(imm))
+        {
+            printf("[ERROR] encode_instruction: jalr immediate out of 12-bit range (line %d, imm=%d)\n",
+                   instr->line_number, imm);
+            return 0;
+        }
+
+        uint8_t funct3 = 0x0;
+        uint32_t encoded = build_itype((uint32_t)imm, (uint32_t)rs1, funct3, (uint32_t)rd, 0x67);
+        printf("[ENCODE] JALR x%d, %s -> rd=x%d, rs1=x%d, imm=%d -> 0x%08X\n",
+               rd, instr->operands[1], rd, rs1, imm, encoded);
         return encoded;
     }
 
