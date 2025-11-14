@@ -349,7 +349,7 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
     int32_t val_rs1 = cpu_get_reg(cpu, rs1);
     int32_t val_rs2 = cpu_get_reg(cpu, rs2);
 
-    ALUOp operation;
+    ALUOp operation = ALU_UNKNOWN;
     const char *op_name = "UNKNOWN";
 
     if(funct3 == 0x00)
@@ -359,6 +359,11 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
             operation = ALU_ADD;
             op_name = "ADD";
         }
+        else if(funct7 == 0x01)
+        {
+            operation = ALU_MUL;
+            op_name = "MUL";
+        }
         else if(funct7 == 0x20)
         {
             operation = ALU_SUB;
@@ -366,25 +371,50 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         }
         else
         {
-            printf("[ERROR] unsupported rtype function funct7 0x%X at PC 0x%08X\n",
-               funct7, cpu->pc);
+            printf("[ERROR] unsupported funct7=0x%02X for funct3=0x00 at PC 0x%08X\n",
+                    funct7, cpu->pc);
             cpu->error = 1;
             return -1;
         }
     }
     else if(funct3 == 0x01)
     {
-        operation = ALU_SLL;
-        op_name = "SLL";
+        if(funct7 == 0x00)
+        {
+            operation = ALU_SLL;
+            op_name = "SLL";
+        }
+        else
+        {
+            printf("[ERROR] unsupported funct7=0x%02X for funct3=0x01 at PC 0x%08X\n",
+                    funct7, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
     }
     else if(funct3 == 0x04)
     {
-        operation = ALU_XOR;
-        op_name = "XOR";
+        if(funct7 == 0x00)
+        {
+            operation = ALU_XOR;
+            op_name = "XOR";
+        }
+        else if(funct7 == 0x01)
+        {
+            operation = ALU_DIV;
+            op_name = "DIV";
+        }
+        else
+        {
+            printf("[ERROR] unsupported funct7=0x%02X for funct3=0x04 at PC 0x%08X\n",
+                       funct7, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
     }
     else if(funct3 == 0x05)
     {
-        if(funct7 == 0)
+        if(funct7 == 0x00)
         {
             operation = ALU_SRL;
             op_name = "SRL";
@@ -404,13 +434,33 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
     }
     else if(funct3 == 0x06)
     {
-        operation = ALU_OR;
-        op_name = "OR";
+        if(funct7 == 0x00)
+        {
+            operation = ALU_OR;
+            op_name = "OR";
+        }
+        else
+        {
+            printf("[ERROR] unsupported funct7=0x%02X for funct3=0x06 at PC 0x%08X\n",
+                    funct7, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
     }
     else if(funct3 == 0x07)
     {
-        operation = ALU_AND;
-        op_name = "AND";
+        if(funct7 == 0x00)
+        {
+            operation = ALU_AND;
+            op_name = "AND";
+        }
+        else
+        {
+            printf("[ERROR] unsupported funct7=0x%02X for funct3=0x07 at PC 0x%08X\n",
+                       funct7, cpu->pc);
+            cpu->error = 1;
+            return -1;
+        }
     }
     else
     {

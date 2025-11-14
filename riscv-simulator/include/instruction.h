@@ -3,12 +3,6 @@
 
 #include <stdint.h>
 
-typedef enum 
-{
-    OP_ADD = 0x33,
-    OP_SUB = 0x33 
-} Opcode;
-
 /**
  * R-Type Instruction Format (RISC-V)
  * 

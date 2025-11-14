@@ -5,6 +5,7 @@
 
 typedef enum
 {
+    ALU_UNKNOWN,
     ALU_ADD,
     ALU_SUB,
     ALU_XOR,
@@ -12,7 +13,9 @@ typedef enum
     ALU_AND,
     ALU_SLL, // logical left
     ALU_SRL, // logical right
-    ALU_SRA  // arithmetic right
+    ALU_SRA, // arithmetic right
+    ALU_MUL,
+    ALU_DIV
 } ALUOp;
 
 int32_t alu_execute(ALUOp op, int32_t operand1, int32_t operand2);

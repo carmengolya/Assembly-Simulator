@@ -193,7 +193,7 @@ uint32_t encode_instruction(AssemblyProgram *program, Instruction *instr)
             funct7 = 0X00;
             op_name = "ADD";
         }
-        else
+        else if(strcmp(instr->opcode, "sub") == 0)
         {
             funct7 = 0x20;
             op_name = "SUB";
@@ -203,6 +203,64 @@ uint32_t encode_instruction(AssemblyProgram *program, Instruction *instr)
         printf("[ENCODE] %s x%d, x%d, x%d -> 0x%08X\n",
                op_name, rd, rs1, rs2, encoded);
         return encoded;
+    }
+    else if(strcmp(instr->opcode, "mul") == 0)
+    {
+        if(instr->operand_count < 3)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'mul' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        int rs1 = reg_index(instr->operands[1]);
+        int rs2 = reg_index(instr->operands[2]);
+
+        if(rd < 0 || rs1 < 0 || rs2 < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid registers for 'mul' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        uint8_t opcode = 0x33;
+        uint8_t funct3 = 0x00;
+        uint8_t funct7 = 0x01;
+
+        uint32_t encoded = build_rtype(funct7, rs2, rs1, funct3, rd, opcode);
+        enc.value = encoded;
+        printf("[ENCODE] MUL x%d, x%d, x%d -> 0x%08X\n", rd, rs1, rs2, encoded);
+        return enc.value;
+    }
+    else if(strcmp(instr->opcode, "div") == 0)
+    {
+        if(instr->operand_count < 3)
+        {
+            printf("[ERROR] encode_instruction: not enough operands for 'div' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        int rd = reg_index(instr->operands[0]);
+        int rs1 = reg_index(instr->operands[1]);
+        int rs2 = reg_index(instr->operands[2]);
+
+        if(rd < 0 || rs1 < 0 || rs2 < 0)
+        {
+            printf("[ERROR] encode_instruction: invalid registers for 'div' (line %d)\n",
+                   instr->line_number);
+            return 0;
+        }
+
+        uint8_t opcode = 0x33;
+        uint8_t funct3 = 0x04;
+        uint8_t funct7 = 0x01;
+
+        uint32_t encoded = build_rtype(funct7, rs2, rs1, funct3, rd, opcode);
+        enc.value = encoded;
+        printf("[ENCODE] DIV x%d, x%d, x%d -> 0x%08X\n", rd, rs1, rs2, encoded);
+        return enc.value;
     }
     else if(strcmp(instr->opcode, "sll") == 0 || strcmp(instr->opcode, "srl") == 0 || strcmp(instr->opcode, "sra") == 0 ||
         strcmp(instr->opcode, "and") == 0 || strcmp(instr->opcode, "or") == 0 || strcmp(instr->opcode, "xor") == 0)
