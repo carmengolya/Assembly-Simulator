@@ -16,12 +16,14 @@ void cpu_init(CPU *cpu)
     }
     cpu->pc = 0;
 
-    cpu->memory = NULL;              
-    cpu->program = NULL;       
+    cpu->memory = NULL;
+    cpu->program = NULL;
     
-    cpu->instructions_executed = 0; 
-    cpu->halted = 0;                     
-    cpu->error = 0; 
+    cpu->instructions_executed = 0;
+    cpu->halted = 0;
+    cpu->error = 0;
+
+    cpu_init_default_register_roles(cpu);
 }
 
 void cpu_init_with_program(CPU *cpu, Memory *memory, AssemblyProgram *program)
@@ -36,6 +38,45 @@ void cpu_init_with_program(CPU *cpu, Memory *memory, AssemblyProgram *program)
     cpu->memory = memory;
     cpu->program = program;
     cpu->pc = 0;
+}
+
+void cpu_init_default_register_roles(CPU *cpu)
+{
+    if(!cpu)
+        return;
+
+    for(int i = 0; i < REG_NUMBER; ++i)
+    {
+        cpu->reg_roles[i] = ROLE_SPECIAL;
+    }
+
+    cpu->reg_roles[0] = ROLE_ZERO;
+    cpu->reg_roles[1] = ROLE_RA;
+    cpu->reg_roles[2] = ROLE_SP;
+    cpu->reg_roles[3] = ROLE_GP;
+    cpu->reg_roles[4] = ROLE_TP;
+
+    cpu->reg_roles[5] = ROLE_TEMP;
+    cpu->reg_roles[6] = ROLE_TEMP;
+    cpu->reg_roles[7] = ROLE_TEMP;
+
+    cpu->reg_roles[8] = ROLE_SAVED;
+    cpu->reg_roles[9] = ROLE_SAVED;
+
+    for(int r = 10; r <= 17; ++r)
+    {
+        cpu->reg_roles[r] = ROLE_ARG;
+    }
+
+    for(int r = 18; r <= 27; ++r) 
+    {
+        cpu->reg_roles[r] = ROLE_SAVED;
+    }
+
+    for(int r = 28; r <= 31; ++r)
+    {
+        cpu->reg_roles[r] = ROLE_TEMP;
+    }
 }
 
 void cpu_set_reg(CPU *cpu, int index, int32_t value)
@@ -66,6 +107,27 @@ int32_t cpu_get_reg(CPU *cpu, int index)
     return cpu->regs[index];
 }
 
+void cpu_set_reg_role(CPU *cpu, int index, RegRole role)
+{
+    if(!cpu)
+        return;
+
+    if(index < 0 || index >= REG_NUMBER)
+        return;
+
+    cpu->reg_roles[index] = role;
+}
+
+RegRole cpu_get_reg_role(CPU *cpu, int index)
+{
+    if(!cpu)
+        return ROLE_SPECIAL;
+
+    if(index < 0 || index >= REG_NUMBER)
+        return ROLE_SPECIAL;
+    
+    return cpu->reg_roles[index];
+}
 
 void cpu_print_registers(CPU *cpu)
 {
@@ -439,7 +501,7 @@ static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
             int32_t base = cpu_get_reg(cpu, rs1);
             uint32_t target = (uint32_t)((base + imm) & ~1U);
 
-            cpu_writeback(cpu, rd, (int32_t)(pc_before_inc + 4));
+            cpu_writeback_with_context(cpu, rd, (int32_t)(pc_before_inc + 4), enc, 0);
             cpu->pc = target;
 
             printf("[EXEC] JALR x%d, x%d, imm=%d -> new PC=0x%08X (rs1=0x%08X)\n",
@@ -596,7 +658,7 @@ static int cpu_execute_jtype(CPU *cpu, EncodedInstruction enc)
 
     uint32_t pc_before_inc = cpu->pc - 4;
 
-    cpu_writeback(cpu, rd, (int32_t)(pc_before_inc + 4));
+    cpu_writeback_with_context(cpu, rd, (int32_t)(pc_before_inc + 4), enc, 0);
 
     cpu->pc = pc_before_inc + imm;
 
@@ -648,28 +710,83 @@ int cpu_execute(CPU *cpu, EncodedInstruction enc)
     }
 }
 
-void cpu_writeback(CPU *cpu, int rd, int32_t value)
+static int cpu_can_write_register(CPU *cpu, int rd, const EncodedInstruction *enc, int operand_index)
 {
     if(!cpu)
+        return 0;
+
+    if(rd < 0 || rd >= REG_NUMBER)
+        return 0;
+
+    if(rd == 0) // for zero
+        return 0;
+
+    if(rd == 1) // for ra
     {
-        printf("[ERROR] cpu is null.\n");
+        if(!enc)
+            return 0;
+
+        uint8_t opcode = enc->value & 0x7F;
+        if(opcode == 0x6F)
+        {
+            return 1;
+        }
+        if(opcode == 0x67)
+        {
+            if(operand_index == 0)
+                return 1;
+
+            return 0;
+        }
+
+        return 0;
+    }
+
+    return 1;
+}
+
+static void cpu_write_reg_checked_with_context(CPU *cpu, int rd, int32_t value, const EncodedInstruction *enc, int operand_index)
+{
+    if(!cpu)
+        return;
+
+    if(!cpu_can_write_register(cpu, rd, enc, operand_index))
+    {
+        if(rd == 0)
+        {
+            printf("[WARN] writeback ignored: attempt to write x0 with 0x%08X\n", (uint32_t)value);
+            return;
+        }
+        printf("[ERROR] writeback denied: cannot write x%d (instr opcode=0x%02X, operand_index=%d)\n",
+               rd, enc ? (enc->value & 0x7F) : 0, operand_index);
+        cpu->error = 1;
         return;
     }
 
-    cpu_set_reg(cpu, rd, value);
+    cpu->regs[rd] = value;
+}
+
+void cpu_writeback(CPU *cpu, int rd, int32_t value)
+{
+    cpu_write_reg_checked_with_context(cpu, rd, value, NULL, -1);
+}
+
+void cpu_writeback_with_context(CPU *cpu, int rd, int32_t value, EncodedInstruction enc, int operand_index)
+{
+    cpu_write_reg_checked_with_context(cpu, rd, value, &enc, operand_index);
 }
 
 int cpu_step(CPU *cpu)
 {
     if(!cpu)
     {
-        printf("[ERROR] cpu is null.\n");
+        printf("[ERROR] cpu_step: cpu is null.\n");
         return -1;
     }
 
     if(cpu->halted)
     {
-        printf("[INFO] cpu is halted.\n");
+        printf("[INFO] cpu_step: cpu is halted.\n");
         return 0;
     }
 
@@ -728,7 +845,7 @@ int cpu_run(CPU *cpu)
 
     printf("\n=== Starting CPU Execution ===\n");
 
-    while (!cpu->halted && cpu->instructions_executed < 1000)
+    while(!cpu->halted && cpu->instructions_executed < 1000)
     {
         if(cpu_step(cpu) < 0)
         {
@@ -741,10 +858,16 @@ int cpu_run(CPU *cpu)
     if(cpu->instructions_executed >= 1000)
     {
         printf("[WARN] cpu_run: execution limit (1000 instructions) reached\n");
-    }
+    } 
 
     printf("\n=== CPU Execution Finished ===\n");
     printf("Total instructions executed: %u\n", cpu->instructions_executed);
+
+    if(cpu->error)
+    {
+        printf("[ERROR] cpu_run: CPU reported an error during execution\n");
+        return -1;
+    }
 
     return 0;
 }

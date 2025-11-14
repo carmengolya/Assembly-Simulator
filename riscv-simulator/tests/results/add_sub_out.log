@@ -8,9 +8,9 @@
 [01] li x4, 5
 [02] li x6, 20
 [03] li x7, 8
-[04] add x1, x2, x4
+[04] add x3, x2, x4
 [05] sub x5, x6, x7
-[06] sw x1, 16(x0)
+[06] sw x3, 16(x0)
 [07] sw x5, 20(x0)
 
 [STEP 2] Initializing memory...
@@ -25,12 +25,12 @@
  -> encoded: 0x01400313
 [03] (PC=0x0000000C) li x7, 8[ENCODE] LI x7, 8 -> (ADDI x7, x0, 8) -> 0x00800393
  -> encoded: 0x00800393
-[04] (PC=0x00000010) add x1, x2, x4[ENCODE] ADD x1, x2, x4 -> 0x004100B3
- -> encoded: 0x004100B3
+[04] (PC=0x00000010) add x3, x2, x4[ENCODE] ADD x3, x2, x4 -> 0x004101B3
+ -> encoded: 0x004101B3
 [05] (PC=0x00000014) sub x5, x6, x7[ENCODE] SUB x5, x6, x7 -> 0x407302B3
  -> encoded: 0x407302B3
-[06] (PC=0x00000018) sw x1, 16(x0)[ENCODE] SW x1, 16(x0) -> 0x00102823
- -> encoded: 0x00102823
+[06] (PC=0x00000018) sw x3, 16(x0)[ENCODE] SW x3, 16(x0) -> 0x00302823
+ -> encoded: 0x00302823
 [07] (PC=0x0000001C) sw x5, 20(x0)[ENCODE] SW x5, 20(x0) -> 0x00502A23
  -> encoded: 0x00502A23
 [OK] Encoded 8/8 instructions
@@ -44,9 +44,9 @@
 00000004: 00500213
 00000008: 01400313
 0000000c: 00800393
-00000010: 004100b3
+00000010: 004101b3
 00000014: 407302b3
-00000018: 00102823
+00000018: 00302823
 0000001c: 00502a23
 00000020: 00000000
 00000024: 00000000
@@ -145,20 +145,20 @@ x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
 [DECODE] I-Type: funct3=0x0, rs1=0, rd=7, imm=8
 [EXEC] LI x7, 8 -> x7 = 0x00000008
 
-[STEP 4] PC=0x00000010, Instruction=0x004100B3
+[STEP 4] PC=0x00000010, Instruction=0x004101B3
 [DECODE DISPATCH] Opcode=0x33
-[DECODE] R-Type: funct7=0x00, rs2=4, rs1=2, funct3=0x0, rd=1
-[EXEC] ADD x1, x2, x4 -> x1 = 0x0000000F (rs1=0x0000000A, rs2=0x00000005)
+[DECODE] R-Type: funct7=0x00, rs2=4, rs1=2, funct3=0x0, rd=3
+[EXEC] ADD x3, x2, x4 -> x3 = 0x0000000F (rs1=0x0000000A, rs2=0x00000005)
 
 [STEP 5] PC=0x00000014, Instruction=0x407302B3
 [DECODE DISPATCH] Opcode=0x33
 [DECODE] R-Type: funct7=0x20, rs2=7, rs1=6, funct3=0x0, rd=5
 [EXEC] SUB x5, x6, x7 -> x5 = 0x0000000C (rs1=0x00000014, rs2=0x00000008)
 
-[STEP 6] PC=0x00000018, Instruction=0x00102823
+[STEP 6] PC=0x00000018, Instruction=0x00302823
 [DECODE DISPATCH] Opcode=0x23
 [DECODE] S-Type (placeholder)
-[EXEC] SW x1, 16(x0) -> Store 0x0000000F to 0x00000030
+[EXEC] SW x3, 16(x0) -> Store 0x0000000F to 0x00000030
 
 [STEP 7] PC=0x0000001C, Instruction=0x00502A23
 [DECODE DISPATCH] Opcode=0x23
@@ -191,8 +191,8 @@ Error: NO
 
 === REGISTERS ===
 PC: 0x00000020
-x00: 0x00000000 (          0) | x01: 0x0000000F (         15)
-x02: 0x0000000A (         10) | x03: 0x00000000 (          0)
+x00: 0x00000000 (          0) | x01: 0x00000000 (          0)
+x02: 0x0000000A (         10) | x03: 0x0000000F (         15)
 x04: 0x00000005 (          5) | x05: 0x0000000C (         12)
 x06: 0x00000014 (         20) | x07: 0x00000008 (          8)
 x08: 0x00000000 (          0) | x09: 0x00000000 (          0)

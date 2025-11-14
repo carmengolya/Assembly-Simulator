@@ -4,8 +4,8 @@
 
 [STEP 1] Parsing assembly file...
 [OK] Loaded 6 instructions
-[00] addi x1, x0, 1
-[01] bne x1, x0, 12
+[00] addi x5, x0, 1
+[01] bne x5, x0, 12
 [02] addi x2, x0, 0
 [03] sw x2, 0(x0)
 [04] addi x2, x0, 1
@@ -16,10 +16,10 @@ DATA[00] out = 0 @ address 0
 [OK] Memory initialized (size: 400 bytes)
 
 [STEP 3] Encoding instructions...
-[00] (PC=0x00000000) addi x1, x0, 1[ENCODE] ADDI x1, x0, 1 -> 0x00100093
- -> encoded: 0x00100093
-[01] (PC=0x00000004) bne x1, x0, 12[ENCODE] bne x1, x0, 12 -> off=12 (PC=0x00000004) -> 0x00009663
- -> encoded: 0x00009663
+[00] (PC=0x00000000) addi x5, x0, 1[ENCODE] ADDI x5, x0, 1 -> 0x00100293
+ -> encoded: 0x00100293
+[01] (PC=0x00000004) bne x5, x0, 12[ENCODE] bne x5, x0, 12 -> off=12 (PC=0x00000004) -> 0x00029663
+ -> encoded: 0x00029663
 [02] (PC=0x00000008) addi x2, x0, 0[ENCODE] ADDI x2, x0, 0 -> 0x00000113
  -> encoded: 0x00000113
 [03] (PC=0x0000000C) sw x2, 0(x0)[ENCODE] SW x2, 0(x0) -> 0x00202023
@@ -38,8 +38,8 @@ DATA[00] out = 0 @ address 0
 [OK] Data loaded at address 0x00000018
 
 [DEBUG] Memory dump after loading:
-00000000: 00100093
-00000004: 00009663
+00000000: 00100293
+00000004: 00029663
 00000008: 00000113
 0000000c: 00202023
 00000010: 00100113
@@ -115,15 +115,15 @@ x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
 
 === Starting CPU Execution ===
 
-[STEP 0] PC=0x00000000, Instruction=0x00100093
+[STEP 0] PC=0x00000000, Instruction=0x00100293
 [DECODE DISPATCH] Opcode=0x13
-[DECODE] I-Type: funct3=0x0, rs1=0, rd=1, imm=1
-[EXEC] LI x1, 1 -> x1 = 0x00000001
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=5, imm=1
+[EXEC] LI x5, 1 -> x5 = 0x00000001
 
-[STEP 1] PC=0x00000004, Instruction=0x00009663
+[STEP 1] PC=0x00000004, Instruction=0x00029663
 [DECODE DISPATCH] Opcode=0x63
-[DECODE] B-Type: funct3=0x1, rs1=1, rs2=0, imm=12
-[EXEC] BNE x1, x0, imm=12 -> TAKEN (rs1=0x00000001, rs2=0x00000000)
+[DECODE] B-Type: funct3=0x1, rs1=5, rs2=0, imm=12
+[EXEC] BNE x5, x0, imm=12 -> TAKEN (rs1=0x00000001, rs2=0x00000000)
 
 [STEP 2] PC=0x00000010, Instruction=0x00100113
 [DECODE DISPATCH] Opcode=0x13
@@ -161,9 +161,9 @@ Error: NO
 
 === REGISTERS ===
 PC: 0x00000018
-x00: 0x00000000 (          0) | x01: 0x00000001 (          1)
+x00: 0x00000000 (          0) | x01: 0x00000000 (          0)
 x02: 0x00000001 (          1) | x03: 0x00000000 (          0)
-x04: 0x00000000 (          0) | x05: 0x00000000 (          0)
+x04: 0x00000000 (          0) | x05: 0x00000001 (          1)
 x06: 0x00000000 (          0) | x07: 0x00000000 (          0)
 x08: 0x00000000 (          0) | x09: 0x00000000 (          0)
 x10: 0x00000000 (          0) | x11: 0x00000000 (          0)
