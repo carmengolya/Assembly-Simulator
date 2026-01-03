@@ -357,17 +357,17 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         if(funct7 == 0x00)
         {
             operation = ALU_ADD;
-            op_name = "ADD";
+            op_name = "ADD";       // operation ADD
         }
         else if(funct7 == 0x01)
         {
             operation = ALU_MUL;
-            op_name = "MUL";
+            op_name = "MUL";       // operation MUL
         }
         else if(funct7 == 0x20)
         {
             operation = ALU_SUB;
-            op_name = "SUB";
+            op_name = "SUB";       // operation SUB
         }
         else
         {
@@ -382,7 +382,7 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         if(funct7 == 0x00)
         {
             operation = ALU_SLL;
-            op_name = "SLL";
+            op_name = "SLL";       // operation SLL
         }
         else
         {
@@ -397,12 +397,12 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         if(funct7 == 0x00)
         {
             operation = ALU_XOR;
-            op_name = "XOR";
+            op_name = "XOR";       // operation XOR
         }
         else if(funct7 == 0x01)
         {
             operation = ALU_DIV;
-            op_name = "DIV";
+            op_name = "DIV";       // operation DIV
         }
         else
         {
@@ -417,12 +417,12 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         if(funct7 == 0x00)
         {
             operation = ALU_SRL;
-            op_name = "SRL";
+            op_name = "SRL";       // operation SRL
         }
         else if(funct7 == 0x20)
         {
             operation = ALU_SRA;
-            op_name = "SRA";
+            op_name = "SRA";       // operation SRA
         }
         else
         {
@@ -437,7 +437,7 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         if(funct7 == 0x00)
         {
             operation = ALU_OR;
-            op_name = "OR";
+            op_name = "OR";       // operation OR
         }
         else
         {
@@ -452,7 +452,7 @@ static int cpu_execute_rtype(CPU *cpu, EncodedInstruction enc)
         if(funct7 == 0x00)
         {
             operation = ALU_AND;
-            op_name = "AND";
+            op_name = "AND";       // operation AND
         }
         else
         {
@@ -504,7 +504,7 @@ static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
             uint32_t data_offset = cpu->program->instruction_count * 4;
             uint32_t addr = data_offset + addr_base + imm;
 
-            op_name = "LW";
+            op_name = "LW";       // operation LW
             value = memory_read32(cpu->memory, addr);
             cpu_writeback(cpu, rd, value);
             printf("[EXEC] %s x%d, %d(x%d) -> Load from 0x%08X = 0x%08X\n",
@@ -528,10 +528,10 @@ static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
             cpu_writeback(cpu, rd, result);
 
             if(rs1 == 0)
-                printf("[EXEC] LI x%d, %d -> x%d = 0x%08X\n",
+                printf("[EXEC] LI x%d, %d -> x%d = 0x%08X\n",                     // operation LI
                    rd, imm, rd, result);
             else
-                printf("[EXEC] ADDI x%d, x%d, %d -> x%d = 0x%08X (rs1=0x%08X)\n",
+                printf("[EXEC] ADDI x%d, x%d, %d -> x%d = 0x%08X (rs1=0x%08X)\n", // operation ADDI
                    rd, rs1, imm, rd, result, val_rs1);
             return 0;
         }
@@ -554,7 +554,7 @@ static int cpu_execute_itype(CPU *cpu, EncodedInstruction enc)
             cpu_writeback_with_context(cpu, rd, (int32_t)(pc_before_inc + 4), enc, 0);
             cpu->pc = target;
 
-            printf("[EXEC] JALR x%d, x%d, imm=%d -> new PC=0x%08X (rs1=0x%08X)\n",
+            printf("[EXEC] JALR x%d, x%d, imm=%d -> new PC=0x%08X (rs1=0x%08X)\n",   //  operation JALR
                 rd, rs1, imm, cpu->pc, (uint32_t)base);
 
             return 0;
@@ -597,7 +597,7 @@ static int cpu_execute_stype(CPU *cpu, EncodedInstruction enc)
 
     if(funct3 == 0x2)  
     {
-        op_name = "SW";
+        op_name = "SW";       // operation SW
         printf("[EXEC] %s x%d, %d(x%d) -> Store 0x%08X to 0x%08X\n",
                op_name, rs2, imm, rs1, value, addr);
         memory_write32(cpu->memory, addr, value);
@@ -625,7 +625,7 @@ static int cpu_execute_utype(CPU *cpu, EncodedInstruction enc)
     if (opcode == 0x37)
     {
         cpu_writeback(cpu, rd, imm_aligned);
-        printf("[EXEC] LUI x%d, 0x%05X -> x%d = 0x%08X\n",
+        printf("[EXEC] LUI x%d, 0x%05X -> x%d = 0x%08X\n",          // operation LUI
                rd, (unsigned)utype_get_imm20(enc.value), rd, (uint32_t)imm_aligned);
         return 0;
     }
@@ -635,7 +635,7 @@ static int cpu_execute_utype(CPU *cpu, EncodedInstruction enc)
         uint32_t result = pc_before + (uint32_t)imm_aligned;
         
         cpu_writeback(cpu, rd, (int32_t)result);
-        printf("[EXEC] AUIPC x%d, 0x%05X -> x%d = PC(0x%08X) + 0x%08X = 0x%08X\n",
+        printf("[EXEC] AUIPC x%d, 0x%05X -> x%d = PC(0x%08X) + 0x%08X = 0x%08X\n",          // operation AUIPC
                rd, (unsigned)utype_get_imm20(enc.value), rd, pc_before, (uint32_t)imm_aligned, result);
         return 0;
     }
@@ -661,19 +661,19 @@ static int cpu_execute_btype(CPU *cpu, EncodedInstruction enc)
     switch(funct3)
     {
         case 0x0:
-            name = "BEQ";
+            name = "BEQ";          // operation BEQ
             take = (v1 == v2);
             break;
         case 0x1:
-            name = "BNE";
+            name = "BNE";          // operation BNE
             take = (v1 != v2);
             break;
         case 0x4:
-            name = "BLT";
+            name = "BLT";          // operation BLT
             take = (v1 < v2);
             break;
         case 0x5:
-            name = "BGE";
+            name = "BGE";          // operation BGE
             take = (v1 >= v2);
             break;
         default:
@@ -712,7 +712,7 @@ static int cpu_execute_jtype(CPU *cpu, EncodedInstruction enc)
 
     cpu->pc = pc_before_inc + imm;
 
-    printf("[EXEC] JAL x%d, imm=%d -> new PC=0x%08X (return=0x%08X)\n",
+    printf("[EXEC] JAL x%d, imm=%d -> new PC=0x%08X (return=0x%08X)\n",          // operation JAL
            rd, imm, cpu->pc, (uint32_t)(pc_before_inc + 4));
 
     return 0;

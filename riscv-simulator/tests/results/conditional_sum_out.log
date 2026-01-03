@@ -1,0 +1,347 @@
+=================================================================
+        RISC-V Assembly Simulator - Executor Test
+=================================================================
+
+[STEP 1] Parsing assembly file...
+[OK] Loaded 12 instructions
+[00] main : lw x11, 0(x0)
+[01] li x10, 0
+[02] li x12, 1
+[03] li x14, 1
+[04] and x13, x11, x14
+[05] beq x13, x0, is_even
+[06] odd_case : add x10, x10, x12
+[07] beq x12, x11, store
+[08] addi x12, x12, 1
+[09] jal x0, odd_case
+[10] is_even : add x10, x11, x0
+[11] store : sw x10, 4(x0)
+DATA[00] n = 5 @ address 0
+DATA[01] result = 0 @ address 4
+
+[STEP 2] Initializing memory...
+[OK] Memory initialized (size: 400 bytes)
+
+[STEP 3] Encoding instructions...
+[00] (PC=0x00000000) main: lw x11, 0(x0)[ENCODE] LW x11, 0(x0) -> 0x00002583
+ -> encoded: 0x00002583
+[01] (PC=0x00000004) li x10, 0[ENCODE] LI x10, 0 -> (ADDI x10, x0, 0) -> 0x00000513
+ -> encoded: 0x00000513
+[02] (PC=0x00000008) li x12, 1[ENCODE] LI x12, 1 -> (ADDI x12, x0, 1) -> 0x00100613
+ -> encoded: 0x00100613
+[03] (PC=0x0000000C) li x14, 1[ENCODE] LI x14, 1 -> (ADDI x14, x0, 1) -> 0x00100713
+ -> encoded: 0x00100713
+[04] (PC=0x00000010) and x13, x11, x14[ENCODE] and x13, x11, x14 -> 0x00E5F6B3
+ -> encoded: 0x00E5F6B3
+[05] (PC=0x00000014) beq x13, x0, is_even[ENCODE] beq x13, x0, is_even -> off=20 (PC=0x00000014) -> 0x00068A63
+ -> encoded: 0x00068A63
+[06] (PC=0x00000018) odd_case: add x10, x10, x12[ENCODE] ADD x10, x10, x12 -> 0x00C50533
+ -> encoded: 0x00C50533
+[07] (PC=0x0000001C) beq x12, x11, store[ENCODE] beq x12, x11, store -> off=16 (PC=0x0000001C) -> 0x00B60863
+ -> encoded: 0x00B60863
+[08] (PC=0x00000020) addi x12, x12, 1[ENCODE] ADDI x12, x12, 1 -> 0x00160613
+ -> encoded: 0x00160613
+[09] (PC=0x00000024) jal x0, odd_case[ENCODE] JAL x0, odd_case (off=-12) -> 0xFF5FF06F
+ -> encoded: 0xFF5FF06F
+[10] (PC=0x00000028) is_even: add x10, x11, x0[ENCODE] ADD x10, x11, x0 -> 0x00058533
+ -> encoded: 0x00058533
+[11] (PC=0x0000002C) store: sw x10, 4(x0)[ENCODE] SW x10, 4(x0) -> 0x00A02223
+ -> encoded: 0x00A02223
+[OK] Encoded 12/12 instructions
+
+[STEP 4] Loading program into memory...
+[OK] Program loaded at address 0x00000000
+
+[STEP 4B] Loading data section into memory...
+[OK] Data loaded starting at address 0x00000030
+[OK] Data loaded at address 0x00000030
+
+[DEBUG] Memory dump after loading:
+00000000: 00002583
+00000004: 00000513
+00000008: 00100613
+0000000c: 00100713
+00000010: 00e5f6b3
+00000014: 00068a63
+00000018: 00c50533
+0000001c: 00b60863
+00000020: 00160613
+00000024: ff5ff06f
+00000028: 00058533
+0000002c: 00a02223
+00000030: 00000005
+00000034: 00000000
+00000038: 00000000
+0000003c: 00000000
+00000040: 00000000
+00000044: 00000000
+00000048: 00000000
+0000004c: 00000000
+00000050: 00000000
+00000054: 00000000
+00000058: 00000000
+0000005c: 00000000
+00000060: 00000000
+00000064: 00000000
+00000068: 00000000
+0000006c: 00000000
+00000070: 00000000
+00000074: 00000000
+00000078: 00000000
+0000007c: 00000000
+00000080: 00000000
+00000084: 00000000
+00000088: 00000000
+0000008c: 00000000
+00000090: 00000000
+00000094: 00000000
+00000098: 00000000
+0000009c: 00000000
+000000a0: 00000000
+000000a4: 00000000
+000000a8: 00000000
+000000ac: 00000000
+000000b0: 00000000
+000000b4: 00000000
+000000b8: 00000000
+000000bc: 00000000
+000000c0: 00000000
+000000c4: 00000000
+000000c8: 00000000
+000000cc: 00000000
+000000d0: 00000000
+000000d4: 00000000
+000000d8: 00000000
+000000dc: 00000000
+000000e0: 00000000
+000000e4: 00000000
+000000e8: 00000000
+000000ec: 00000000
+000000f0: 00000000
+000000f4: 00000000
+000000f8: 00000000
+000000fc: 00000000
+
+[STEP 5] Initializing CPU...
+[OK] CPU initialized
+
+[DEBUG] Initial CPU state:
+
+=== CPU STATE ===
+PC: 0x00000000
+Instructions executed: 0
+Halted: NO
+Error: NO
+
+=== REGISTERS ===
+PC: 0x00000000
+x00: 0x00000000 (          0) | x01: 0x00000000 (          0)
+x02: 0x00000000 (          0) | x03: 0x00000000 (          0)
+x04: 0x00000000 (          0) | x05: 0x00000000 (          0)
+x06: 0x00000000 (          0) | x07: 0x00000000 (          0)
+x08: 0x00000000 (          0) | x09: 0x00000000 (          0)
+x10: 0x00000000 (          0) | x11: 0x00000000 (          0)
+x12: 0x00000000 (          0) | x13: 0x00000000 (          0)
+x14: 0x00000000 (          0) | x15: 0x00000000 (          0)
+x16: 0x00000000 (          0) | x17: 0x00000000 (          0)
+x18: 0x00000000 (          0) | x19: 0x00000000 (          0)
+x20: 0x00000000 (          0) | x21: 0x00000000 (          0)
+x22: 0x00000000 (          0) | x23: 0x00000000 (          0)
+x24: 0x00000000 (          0) | x25: 0x00000000 (          0)
+x26: 0x00000000 (          0) | x27: 0x00000000 (          0)
+x28: 0x00000000 (          0) | x29: 0x00000000 (          0)
+x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
+
+
+[STEP 6] Executing program...
+-----------------------------------------------------------------
+
+=== Starting CPU Execution ===
+
+[STEP 0] PC=0x00000000, Instruction=0x00002583
+[DECODE DISPATCH] Opcode=0x03
+[DECODE] I-Type: funct3=0x2, rs1=0, rd=11, imm=0
+[EXEC] LW x11, 0(x0) -> Load from 0x00000030 = 0x00000005
+
+[STEP 1] PC=0x00000004, Instruction=0x00000513
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=10, imm=0
+[EXEC] LI x10, 0 -> x10 = 0x00000000
+
+[STEP 2] PC=0x00000008, Instruction=0x00100613
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=12, imm=1
+[EXEC] LI x12, 1 -> x12 = 0x00000001
+
+[STEP 3] PC=0x0000000C, Instruction=0x00100713
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=14, imm=1
+[EXEC] LI x14, 1 -> x14 = 0x00000001
+
+[STEP 4] PC=0x00000010, Instruction=0x00E5F6B3
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=14, rs1=11, funct3=0x7, rd=13
+[EXEC] AND x13, x11, x14 -> x13 = 0x00000001 (rs1=0x00000005, rs2=0x00000001)
+
+[STEP 5] PC=0x00000014, Instruction=0x00068A63
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=13, rs2=0, imm=20
+[EXEC] BEQ x13, x0, imm=20 -> NOT TAKEN (rs1=0x00000001, rs2=0x00000000)
+
+[STEP 6] PC=0x00000018, Instruction=0x00C50533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=10
+[EXEC] ADD x10, x10, x12 -> x10 = 0x00000001 (rs1=0x00000000, rs2=0x00000001)
+
+[STEP 7] PC=0x0000001C, Instruction=0x00B60863
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=12, rs2=11, imm=16
+[EXEC] BEQ x12, x11, imm=16 -> NOT TAKEN (rs1=0x00000001, rs2=0x00000005)
+
+[STEP 8] PC=0x00000020, Instruction=0x00160613
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=12, rd=12, imm=1
+[EXEC] ADDI x12, x12, 1 -> x12 = 0x00000002 (rs1=0x00000001)
+
+[STEP 9] PC=0x00000024, Instruction=0xFF5FF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-12
+[WARN] writeback ignored: attempt to write x0 with 0x00000028
+[EXEC] JAL x0, imm=-12 -> new PC=0x00000018 (return=0x00000028)
+
+[STEP 10] PC=0x00000018, Instruction=0x00C50533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=10
+[EXEC] ADD x10, x10, x12 -> x10 = 0x00000003 (rs1=0x00000001, rs2=0x00000002)
+
+[STEP 11] PC=0x0000001C, Instruction=0x00B60863
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=12, rs2=11, imm=16
+[EXEC] BEQ x12, x11, imm=16 -> NOT TAKEN (rs1=0x00000002, rs2=0x00000005)
+
+[STEP 12] PC=0x00000020, Instruction=0x00160613
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=12, rd=12, imm=1
+[EXEC] ADDI x12, x12, 1 -> x12 = 0x00000003 (rs1=0x00000002)
+
+[STEP 13] PC=0x00000024, Instruction=0xFF5FF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-12
+[WARN] writeback ignored: attempt to write x0 with 0x00000028
+[EXEC] JAL x0, imm=-12 -> new PC=0x00000018 (return=0x00000028)
+
+[STEP 14] PC=0x00000018, Instruction=0x00C50533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=10
+[EXEC] ADD x10, x10, x12 -> x10 = 0x00000006 (rs1=0x00000003, rs2=0x00000003)
+
+[STEP 15] PC=0x0000001C, Instruction=0x00B60863
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=12, rs2=11, imm=16
+[EXEC] BEQ x12, x11, imm=16 -> NOT TAKEN (rs1=0x00000003, rs2=0x00000005)
+
+[STEP 16] PC=0x00000020, Instruction=0x00160613
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=12, rd=12, imm=1
+[EXEC] ADDI x12, x12, 1 -> x12 = 0x00000004 (rs1=0x00000003)
+
+[STEP 17] PC=0x00000024, Instruction=0xFF5FF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-12
+[WARN] writeback ignored: attempt to write x0 with 0x00000028
+[EXEC] JAL x0, imm=-12 -> new PC=0x00000018 (return=0x00000028)
+
+[STEP 18] PC=0x00000018, Instruction=0x00C50533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=10
+[EXEC] ADD x10, x10, x12 -> x10 = 0x0000000A (rs1=0x00000006, rs2=0x00000004)
+
+[STEP 19] PC=0x0000001C, Instruction=0x00B60863
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=12, rs2=11, imm=16
+[EXEC] BEQ x12, x11, imm=16 -> NOT TAKEN (rs1=0x00000004, rs2=0x00000005)
+
+[STEP 20] PC=0x00000020, Instruction=0x00160613
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=12, rd=12, imm=1
+[EXEC] ADDI x12, x12, 1 -> x12 = 0x00000005 (rs1=0x00000004)
+
+[STEP 21] PC=0x00000024, Instruction=0xFF5FF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-12
+[WARN] writeback ignored: attempt to write x0 with 0x00000028
+[EXEC] JAL x0, imm=-12 -> new PC=0x00000018 (return=0x00000028)
+
+[STEP 22] PC=0x00000018, Instruction=0x00C50533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=10
+[EXEC] ADD x10, x10, x12 -> x10 = 0x0000000F (rs1=0x0000000A, rs2=0x00000005)
+
+[STEP 23] PC=0x0000001C, Instruction=0x00B60863
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=12, rs2=11, imm=16
+[EXEC] BEQ x12, x11, imm=16 -> TAKEN (rs1=0x00000005, rs2=0x00000005)
+
+[STEP 24] PC=0x0000002C, Instruction=0x00A02223
+[DECODE DISPATCH] Opcode=0x23
+[DECODE] S-Type (placeholder)
+[EXEC] SW x10, 4(x0) -> Store 0x0000000F to 0x00000034
+[INFO] cpu_step: PC (0x00000030) reached end of program (program size: 48 bytes)
+
+=== CPU Execution Finished ===
+Total instructions executed: 25
+-----------------------------------------------------------------
+
+[DEBUG] Memory dump (data region) after execution:
+00000030: 00000005
+00000034: 0000000f
+00000038: 00000000
+0000003c: 00000000
+00000040: 00000000
+00000044: 00000000
+00000048: 00000000
+0000004c: 00000000
+
+[STEP 7] Final CPU state:
+-----------------------------------------------------------------
+
+=== CPU STATE ===
+PC: 0x00000030
+Instructions executed: 25
+Halted: YES
+Error: NO
+
+=== REGISTERS ===
+PC: 0x00000030
+x00: 0x00000000 (          0) | x01: 0x00000000 (          0)
+x02: 0x00000000 (          0) | x03: 0x00000000 (          0)
+x04: 0x00000000 (          0) | x05: 0x00000000 (          0)
+x06: 0x00000000 (          0) | x07: 0x00000000 (          0)
+x08: 0x00000000 (          0) | x09: 0x00000000 (          0)
+x10: 0x0000000F (         15) | x11: 0x00000005 (          5)
+x12: 0x00000005 (          5) | x13: 0x00000001 (          1)
+x14: 0x00000001 (          1) | x15: 0x00000000 (          0)
+x16: 0x00000000 (          0) | x17: 0x00000000 (          0)
+x18: 0x00000000 (          0) | x19: 0x00000000 (          0)
+x20: 0x00000000 (          0) | x21: 0x00000000 (          0)
+x22: 0x00000000 (          0) | x23: 0x00000000 (          0)
+x24: 0x00000000 (          0) | x25: 0x00000000 (          0)
+x26: 0x00000000 (          0) | x27: 0x00000000 (          0)
+x28: 0x00000000 (          0) | x29: 0x00000000 (          0)
+x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
+
+-----------------------------------------------------------------
+
+[SUMMARY]
+  Program instructions: 12
+  Instructions executed: 25
+  Final PC: 0x00000030
+  CPU halted: YES
+  CPU error: NO
+
+[CLEANUP] Freeing memory...
+[OK] Cleanup complete
+
+=================================================================
+                    Execution Completed
+=================================================================

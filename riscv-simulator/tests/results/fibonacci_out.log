@@ -1,0 +1,483 @@
+=================================================================
+        RISC-V Assembly Simulator - Executor Test
+=================================================================
+
+[STEP 1] Parsing assembly file...
+[OK] Loaded 14 instructions
+[00] main : lw x11, 0(x0)
+[01] li x10, 0
+[02] li x12, 1
+[03] li x13, 0
+[04] beq x11, x13, store
+[05] addi x13, x13, 1
+[06] beq x11, x13, store
+[07] loop : add x14, x10, x12
+[08] add x10, x12, x0
+[09] add x12, x14, x0
+[10] addi x13, x13, 1
+[11] bge x13, x11, store
+[12] jal x0, loop
+[13] store : sw x12, 4(x0)
+DATA[00] n = 8 @ address 0
+DATA[01] fib = 0 @ address 4
+
+[STEP 2] Initializing memory...
+[OK] Memory initialized (size: 400 bytes)
+
+[STEP 3] Encoding instructions...
+[00] (PC=0x00000000) main: lw x11, 0(x0)[ENCODE] LW x11, 0(x0) -> 0x00002583
+ -> encoded: 0x00002583
+[01] (PC=0x00000004) li x10, 0[ENCODE] LI x10, 0 -> (ADDI x10, x0, 0) -> 0x00000513
+ -> encoded: 0x00000513
+[02] (PC=0x00000008) li x12, 1[ENCODE] LI x12, 1 -> (ADDI x12, x0, 1) -> 0x00100613
+ -> encoded: 0x00100613
+[03] (PC=0x0000000C) li x13, 0[ENCODE] LI x13, 0 -> (ADDI x13, x0, 0) -> 0x00000693
+ -> encoded: 0x00000693
+[04] (PC=0x00000010) beq x11, x13, store[ENCODE] beq x11, x13, store -> off=36 (PC=0x00000010) -> 0x02D58263
+ -> encoded: 0x02D58263
+[05] (PC=0x00000014) addi x13, x13, 1[ENCODE] ADDI x13, x13, 1 -> 0x00168693
+ -> encoded: 0x00168693
+[06] (PC=0x00000018) beq x11, x13, store[ENCODE] beq x11, x13, store -> off=28 (PC=0x00000018) -> 0x00D58E63
+ -> encoded: 0x00D58E63
+[07] (PC=0x0000001C) loop: add x14, x10, x12[ENCODE] ADD x14, x10, x12 -> 0x00C50733
+ -> encoded: 0x00C50733
+[08] (PC=0x00000020) add x10, x12, x0[ENCODE] ADD x10, x12, x0 -> 0x00060533
+ -> encoded: 0x00060533
+[09] (PC=0x00000024) add x12, x14, x0[ENCODE] ADD x12, x14, x0 -> 0x00070633
+ -> encoded: 0x00070633
+[10] (PC=0x00000028) addi x13, x13, 1[ENCODE] ADDI x13, x13, 1 -> 0x00168693
+ -> encoded: 0x00168693
+[11] (PC=0x0000002C) bge x13, x11, store[ENCODE] bge x13, x11, store -> off=8 (PC=0x0000002C) -> 0x00B6D463
+ -> encoded: 0x00B6D463
+[12] (PC=0x00000030) jal x0, loop[ENCODE] JAL x0, loop (off=-20) -> 0xFEDFF06F
+ -> encoded: 0xFEDFF06F
+[13] (PC=0x00000034) store: sw x12, 4(x0)[ENCODE] SW x12, 4(x0) -> 0x00C02223
+ -> encoded: 0x00C02223
+[OK] Encoded 14/14 instructions
+
+[STEP 4] Loading program into memory...
+[OK] Program loaded at address 0x00000000
+
+[STEP 4B] Loading data section into memory...
+[OK] Data loaded starting at address 0x00000038
+[OK] Data loaded at address 0x00000038
+
+[DEBUG] Memory dump after loading:
+00000000: 00002583
+00000004: 00000513
+00000008: 00100613
+0000000c: 00000693
+00000010: 02d58263
+00000014: 00168693
+00000018: 00d58e63
+0000001c: 00c50733
+00000020: 00060533
+00000024: 00070633
+00000028: 00168693
+0000002c: 00b6d463
+00000030: fedff06f
+00000034: 00c02223
+00000038: 00000008
+0000003c: 00000000
+00000040: 00000000
+00000044: 00000000
+00000048: 00000000
+0000004c: 00000000
+00000050: 00000000
+00000054: 00000000
+00000058: 00000000
+0000005c: 00000000
+00000060: 00000000
+00000064: 00000000
+00000068: 00000000
+0000006c: 00000000
+00000070: 00000000
+00000074: 00000000
+00000078: 00000000
+0000007c: 00000000
+00000080: 00000000
+00000084: 00000000
+00000088: 00000000
+0000008c: 00000000
+00000090: 00000000
+00000094: 00000000
+00000098: 00000000
+0000009c: 00000000
+000000a0: 00000000
+000000a4: 00000000
+000000a8: 00000000
+000000ac: 00000000
+000000b0: 00000000
+000000b4: 00000000
+000000b8: 00000000
+000000bc: 00000000
+000000c0: 00000000
+000000c4: 00000000
+000000c8: 00000000
+000000cc: 00000000
+000000d0: 00000000
+000000d4: 00000000
+000000d8: 00000000
+000000dc: 00000000
+000000e0: 00000000
+000000e4: 00000000
+000000e8: 00000000
+000000ec: 00000000
+000000f0: 00000000
+000000f4: 00000000
+000000f8: 00000000
+000000fc: 00000000
+00000100: 00000000
+00000104: 00000000
+00000108: 00000000
+0000010c: 00000000
+00000110: 00000000
+00000114: 00000000
+00000118: 00000000
+0000011c: 00000000
+
+[STEP 5] Initializing CPU...
+[OK] CPU initialized
+
+[DEBUG] Initial CPU state:
+
+=== CPU STATE ===
+PC: 0x00000000
+Instructions executed: 0
+Halted: NO
+Error: NO
+
+=== REGISTERS ===
+PC: 0x00000000
+x00: 0x00000000 (          0) | x01: 0x00000000 (          0)
+x02: 0x00000000 (          0) | x03: 0x00000000 (          0)
+x04: 0x00000000 (          0) | x05: 0x00000000 (          0)
+x06: 0x00000000 (          0) | x07: 0x00000000 (          0)
+x08: 0x00000000 (          0) | x09: 0x00000000 (          0)
+x10: 0x00000000 (          0) | x11: 0x00000000 (          0)
+x12: 0x00000000 (          0) | x13: 0x00000000 (          0)
+x14: 0x00000000 (          0) | x15: 0x00000000 (          0)
+x16: 0x00000000 (          0) | x17: 0x00000000 (          0)
+x18: 0x00000000 (          0) | x19: 0x00000000 (          0)
+x20: 0x00000000 (          0) | x21: 0x00000000 (          0)
+x22: 0x00000000 (          0) | x23: 0x00000000 (          0)
+x24: 0x00000000 (          0) | x25: 0x00000000 (          0)
+x26: 0x00000000 (          0) | x27: 0x00000000 (          0)
+x28: 0x00000000 (          0) | x29: 0x00000000 (          0)
+x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
+
+
+[STEP 6] Executing program...
+-----------------------------------------------------------------
+
+=== Starting CPU Execution ===
+
+[STEP 0] PC=0x00000000, Instruction=0x00002583
+[DECODE DISPATCH] Opcode=0x03
+[DECODE] I-Type: funct3=0x2, rs1=0, rd=11, imm=0
+[EXEC] LW x11, 0(x0) -> Load from 0x00000038 = 0x00000008
+
+[STEP 1] PC=0x00000004, Instruction=0x00000513
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=10, imm=0
+[EXEC] LI x10, 0 -> x10 = 0x00000000
+
+[STEP 2] PC=0x00000008, Instruction=0x00100613
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=12, imm=1
+[EXEC] LI x12, 1 -> x12 = 0x00000001
+
+[STEP 3] PC=0x0000000C, Instruction=0x00000693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=0, rd=13, imm=0
+[EXEC] LI x13, 0 -> x13 = 0x00000000
+
+[STEP 4] PC=0x00000010, Instruction=0x02D58263
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=11, rs2=13, imm=36
+[EXEC] BEQ x11, x13, imm=36 -> NOT TAKEN (rs1=0x00000008, rs2=0x00000000)
+
+[STEP 5] PC=0x00000014, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000001 (rs1=0x00000000)
+
+[STEP 6] PC=0x00000018, Instruction=0x00D58E63
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x0, rs1=11, rs2=13, imm=28
+[EXEC] BEQ x11, x13, imm=28 -> NOT TAKEN (rs1=0x00000008, rs2=0x00000001)
+
+[STEP 7] PC=0x0000001C, Instruction=0x00C50733
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=14
+[EXEC] ADD x14, x10, x12 -> x14 = 0x00000001 (rs1=0x00000000, rs2=0x00000001)
+
+[STEP 8] PC=0x00000020, Instruction=0x00060533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=12, funct3=0x0, rd=10
+[EXEC] ADD x10, x12, x0 -> x10 = 0x00000001 (rs1=0x00000001, rs2=0x00000000)
+
+[STEP 9] PC=0x00000024, Instruction=0x00070633
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=14, funct3=0x0, rd=12
+[EXEC] ADD x12, x14, x0 -> x12 = 0x00000001 (rs1=0x00000001, rs2=0x00000000)
+
+[STEP 10] PC=0x00000028, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000002 (rs1=0x00000001)
+
+[STEP 11] PC=0x0000002C, Instruction=0x00B6D463
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x5, rs1=13, rs2=11, imm=8
+[EXEC] BGE x13, x11, imm=8 -> NOT TAKEN (rs1=0x00000002, rs2=0x00000008)
+
+[STEP 12] PC=0x00000030, Instruction=0xFEDFF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-20
+[WARN] writeback ignored: attempt to write x0 with 0x00000034
+[EXEC] JAL x0, imm=-20 -> new PC=0x0000001C (return=0x00000034)
+
+[STEP 13] PC=0x0000001C, Instruction=0x00C50733
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=14
+[EXEC] ADD x14, x10, x12 -> x14 = 0x00000002 (rs1=0x00000001, rs2=0x00000001)
+
+[STEP 14] PC=0x00000020, Instruction=0x00060533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=12, funct3=0x0, rd=10
+[EXEC] ADD x10, x12, x0 -> x10 = 0x00000001 (rs1=0x00000001, rs2=0x00000000)
+
+[STEP 15] PC=0x00000024, Instruction=0x00070633
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=14, funct3=0x0, rd=12
+[EXEC] ADD x12, x14, x0 -> x12 = 0x00000002 (rs1=0x00000002, rs2=0x00000000)
+
+[STEP 16] PC=0x00000028, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000003 (rs1=0x00000002)
+
+[STEP 17] PC=0x0000002C, Instruction=0x00B6D463
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x5, rs1=13, rs2=11, imm=8
+[EXEC] BGE x13, x11, imm=8 -> NOT TAKEN (rs1=0x00000003, rs2=0x00000008)
+
+[STEP 18] PC=0x00000030, Instruction=0xFEDFF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-20
+[WARN] writeback ignored: attempt to write x0 with 0x00000034
+[EXEC] JAL x0, imm=-20 -> new PC=0x0000001C (return=0x00000034)
+
+[STEP 19] PC=0x0000001C, Instruction=0x00C50733
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=14
+[EXEC] ADD x14, x10, x12 -> x14 = 0x00000003 (rs1=0x00000001, rs2=0x00000002)
+
+[STEP 20] PC=0x00000020, Instruction=0x00060533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=12, funct3=0x0, rd=10
+[EXEC] ADD x10, x12, x0 -> x10 = 0x00000002 (rs1=0x00000002, rs2=0x00000000)
+
+[STEP 21] PC=0x00000024, Instruction=0x00070633
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=14, funct3=0x0, rd=12
+[EXEC] ADD x12, x14, x0 -> x12 = 0x00000003 (rs1=0x00000003, rs2=0x00000000)
+
+[STEP 22] PC=0x00000028, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000004 (rs1=0x00000003)
+
+[STEP 23] PC=0x0000002C, Instruction=0x00B6D463
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x5, rs1=13, rs2=11, imm=8
+[EXEC] BGE x13, x11, imm=8 -> NOT TAKEN (rs1=0x00000004, rs2=0x00000008)
+
+[STEP 24] PC=0x00000030, Instruction=0xFEDFF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-20
+[WARN] writeback ignored: attempt to write x0 with 0x00000034
+[EXEC] JAL x0, imm=-20 -> new PC=0x0000001C (return=0x00000034)
+
+[STEP 25] PC=0x0000001C, Instruction=0x00C50733
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=14
+[EXEC] ADD x14, x10, x12 -> x14 = 0x00000005 (rs1=0x00000002, rs2=0x00000003)
+
+[STEP 26] PC=0x00000020, Instruction=0x00060533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=12, funct3=0x0, rd=10
+[EXEC] ADD x10, x12, x0 -> x10 = 0x00000003 (rs1=0x00000003, rs2=0x00000000)
+
+[STEP 27] PC=0x00000024, Instruction=0x00070633
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=14, funct3=0x0, rd=12
+[EXEC] ADD x12, x14, x0 -> x12 = 0x00000005 (rs1=0x00000005, rs2=0x00000000)
+
+[STEP 28] PC=0x00000028, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000005 (rs1=0x00000004)
+
+[STEP 29] PC=0x0000002C, Instruction=0x00B6D463
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x5, rs1=13, rs2=11, imm=8
+[EXEC] BGE x13, x11, imm=8 -> NOT TAKEN (rs1=0x00000005, rs2=0x00000008)
+
+[STEP 30] PC=0x00000030, Instruction=0xFEDFF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-20
+[WARN] writeback ignored: attempt to write x0 with 0x00000034
+[EXEC] JAL x0, imm=-20 -> new PC=0x0000001C (return=0x00000034)
+
+[STEP 31] PC=0x0000001C, Instruction=0x00C50733
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=14
+[EXEC] ADD x14, x10, x12 -> x14 = 0x00000008 (rs1=0x00000003, rs2=0x00000005)
+
+[STEP 32] PC=0x00000020, Instruction=0x00060533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=12, funct3=0x0, rd=10
+[EXEC] ADD x10, x12, x0 -> x10 = 0x00000005 (rs1=0x00000005, rs2=0x00000000)
+
+[STEP 33] PC=0x00000024, Instruction=0x00070633
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=14, funct3=0x0, rd=12
+[EXEC] ADD x12, x14, x0 -> x12 = 0x00000008 (rs1=0x00000008, rs2=0x00000000)
+
+[STEP 34] PC=0x00000028, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000006 (rs1=0x00000005)
+
+[STEP 35] PC=0x0000002C, Instruction=0x00B6D463
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x5, rs1=13, rs2=11, imm=8
+[EXEC] BGE x13, x11, imm=8 -> NOT TAKEN (rs1=0x00000006, rs2=0x00000008)
+
+[STEP 36] PC=0x00000030, Instruction=0xFEDFF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-20
+[WARN] writeback ignored: attempt to write x0 with 0x00000034
+[EXEC] JAL x0, imm=-20 -> new PC=0x0000001C (return=0x00000034)
+
+[STEP 37] PC=0x0000001C, Instruction=0x00C50733
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=14
+[EXEC] ADD x14, x10, x12 -> x14 = 0x0000000D (rs1=0x00000005, rs2=0x00000008)
+
+[STEP 38] PC=0x00000020, Instruction=0x00060533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=12, funct3=0x0, rd=10
+[EXEC] ADD x10, x12, x0 -> x10 = 0x00000008 (rs1=0x00000008, rs2=0x00000000)
+
+[STEP 39] PC=0x00000024, Instruction=0x00070633
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=14, funct3=0x0, rd=12
+[EXEC] ADD x12, x14, x0 -> x12 = 0x0000000D (rs1=0x0000000D, rs2=0x00000000)
+
+[STEP 40] PC=0x00000028, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000007 (rs1=0x00000006)
+
+[STEP 41] PC=0x0000002C, Instruction=0x00B6D463
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x5, rs1=13, rs2=11, imm=8
+[EXEC] BGE x13, x11, imm=8 -> NOT TAKEN (rs1=0x00000007, rs2=0x00000008)
+
+[STEP 42] PC=0x00000030, Instruction=0xFEDFF06F
+[DECODE DISPATCH] Opcode=0x6F
+[DECODE] J-Type: rd=0, imm=-20
+[WARN] writeback ignored: attempt to write x0 with 0x00000034
+[EXEC] JAL x0, imm=-20 -> new PC=0x0000001C (return=0x00000034)
+
+[STEP 43] PC=0x0000001C, Instruction=0x00C50733
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=12, rs1=10, funct3=0x0, rd=14
+[EXEC] ADD x14, x10, x12 -> x14 = 0x00000015 (rs1=0x00000008, rs2=0x0000000D)
+
+[STEP 44] PC=0x00000020, Instruction=0x00060533
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=12, funct3=0x0, rd=10
+[EXEC] ADD x10, x12, x0 -> x10 = 0x0000000D (rs1=0x0000000D, rs2=0x00000000)
+
+[STEP 45] PC=0x00000024, Instruction=0x00070633
+[DECODE DISPATCH] Opcode=0x33
+[DECODE] R-Type: funct7=0x00, rs2=0, rs1=14, funct3=0x0, rd=12
+[EXEC] ADD x12, x14, x0 -> x12 = 0x00000015 (rs1=0x00000015, rs2=0x00000000)
+
+[STEP 46] PC=0x00000028, Instruction=0x00168693
+[DECODE DISPATCH] Opcode=0x13
+[DECODE] I-Type: funct3=0x0, rs1=13, rd=13, imm=1
+[EXEC] ADDI x13, x13, 1 -> x13 = 0x00000008 (rs1=0x00000007)
+
+[STEP 47] PC=0x0000002C, Instruction=0x00B6D463
+[DECODE DISPATCH] Opcode=0x63
+[DECODE] B-Type: funct3=0x5, rs1=13, rs2=11, imm=8
+[EXEC] BGE x13, x11, imm=8 -> TAKEN (rs1=0x00000008, rs2=0x00000008)
+
+[STEP 48] PC=0x00000034, Instruction=0x00C02223
+[DECODE DISPATCH] Opcode=0x23
+[DECODE] S-Type (placeholder)
+[EXEC] SW x12, 4(x0) -> Store 0x00000015 to 0x0000003C
+[INFO] cpu_step: PC (0x00000038) reached end of program (program size: 56 bytes)
+
+=== CPU Execution Finished ===
+Total instructions executed: 49
+-----------------------------------------------------------------
+
+[DEBUG] Memory dump (data region) after execution:
+00000038: 00000008
+0000003c: 00000015
+00000040: 00000000
+00000044: 00000000
+00000048: 00000000
+0000004c: 00000000
+00000050: 00000000
+00000054: 00000000
+
+[STEP 7] Final CPU state:
+-----------------------------------------------------------------
+
+=== CPU STATE ===
+PC: 0x00000038
+Instructions executed: 49
+Halted: YES
+Error: NO
+
+=== REGISTERS ===
+PC: 0x00000038
+x00: 0x00000000 (          0) | x01: 0x00000000 (          0)
+x02: 0x00000000 (          0) | x03: 0x00000000 (          0)
+x04: 0x00000000 (          0) | x05: 0x00000000 (          0)
+x06: 0x00000000 (          0) | x07: 0x00000000 (          0)
+x08: 0x00000000 (          0) | x09: 0x00000000 (          0)
+x10: 0x0000000D (         13) | x11: 0x00000008 (          8)
+x12: 0x00000015 (         21) | x13: 0x00000008 (          8)
+x14: 0x00000015 (         21) | x15: 0x00000000 (          0)
+x16: 0x00000000 (          0) | x17: 0x00000000 (          0)
+x18: 0x00000000 (          0) | x19: 0x00000000 (          0)
+x20: 0x00000000 (          0) | x21: 0x00000000 (          0)
+x22: 0x00000000 (          0) | x23: 0x00000000 (          0)
+x24: 0x00000000 (          0) | x25: 0x00000000 (          0)
+x26: 0x00000000 (          0) | x27: 0x00000000 (          0)
+x28: 0x00000000 (          0) | x29: 0x00000000 (          0)
+x30: 0x00000000 (          0) | x31: 0x00000000 (          0)
+
+-----------------------------------------------------------------
+
+[SUMMARY]
+  Program instructions: 14
+  Instructions executed: 49
+  Final PC: 0x00000038
+  CPU halted: YES
+  CPU error: NO
+
+[CLEANUP] Freeing memory...
+[OK] Cleanup complete
+
+=================================================================
+                    Execution Completed
+=================================================================

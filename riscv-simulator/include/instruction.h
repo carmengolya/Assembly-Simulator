@@ -8,11 +8,11 @@
  * 
  * Layout (32 biți):
  * 
- *  31      25 24    20 19  15 14 12 11    7 6      0
- * +----------+-------+-------+-----+-------+-------+
+ *  31      25 24   20 19   15 14  12 11    7 6      0
+ * +----------+-------+-------+------+-------+-------+
  * |  funct7  |  rs2  |  rs1  |funct3|  rd  |opcode |
- * +----------+-------+-------+-----+-------+-------+
- *  7 biți     5 biți  5 biți 3 biți  5 biți  7 biți
+ * +----------+-------+-------+------+-------+-------+
+ *  7 biti     5 biti  5 biti 3 biti  5 biti  7 biti
  **/
 
 static inline uint8_t rtype_get_opcode(uint32_t instr)
@@ -53,13 +53,13 @@ typedef struct
 /**
  * I-Type Instruction Format (RISC-V)
  * 
- * Layout (32 biți):
+ * Layout (32 biti):
  * 
- *  31            20 19    15 14 12 11   7 6      0
+ *  31             20 19   15 14 12 11    7 6      0
  *  +----------------+-------+-----+-------+-------+
  *  |   immediate    |  rs1  |funct3|  rd  |opcode |
  *  +----------------+-------+-----+-------+-------+
- *      12 biți       5 biți 3 biți  5 biți  7 biți
+ *      12 biti       5 biti 3 biti  5 biti  7 biti
  **/
 
 static inline uint8_t itype_get_opcode(uint32_t instr)
